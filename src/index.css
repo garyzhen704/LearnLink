@@ -47,7 +47,7 @@
     @apply flex min-h-[20rem] w-full items-center justify-center rounded-2xl border border-neutral-200 bg-white p-10 text-sm text-neutral-600 shadow-card sm:min-h-[22rem];
   }
   .btn {
-    @apply inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium transition;
+    @apply inline-flex cursor-pointer items-center justify-center rounded-xl px-4 py-2 text-sm font-medium transition;
   }
   .btn-primary {
     @apply btn bg-neutral-900 text-white hover:bg-neutral-800;
