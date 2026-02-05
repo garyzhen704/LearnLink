@@ -63,7 +63,7 @@ export default function Sidebar({ className = '', isOpen, onToggle }) {
 // Sidebar Components
 function SidebarHeader({ children }) {
   return (
-    <div className='h-16 flex items-center gap-3 p-3 border-b border-neutral-300'>
+    <div className='h-16 flex items-center gap-3 p-3 border-b border-neutral-200'>
       {children}
     </div>
   )

@@ -82,9 +82,6 @@
   .match-shake {
     animation: match-shake 0.35s ease-in-out;
   }
-  .nav-link {
-
-  }
 }
 
 @keyframes match-shake {
