@@ -61,12 +61,12 @@ export default function CreateClassForm({
             className='h-8 w-16 cursor-pointer rounded border border-neutral-300'
           />
         </div>
-        {isDuplicate && (
-          <p className='text-xs text-red-600'>
-            A class with this name already exists.
-          </p>
-        )}
       </div>
+      {isDuplicate && (
+        <p className='text-xs text-red-600'>
+          A class with this name already exists.
+        </p>
+      )}
       {error && <p className='text-xs text-red-600'>{error}</p>}
       <div className='flex gap-2'>
         <button
@@ -87,7 +87,7 @@ export default function CreateClassForm({
       </div>
     </div>
   ) : (
-    <div className='flex flex-col'>
+    <div className='flex flex-col space-y-2'>
       <label className='mb-1 block text-xs font-medium text-neutral-700'>
         Select Class <span className='text-neutral-400'>(optional)</span>
       </label>

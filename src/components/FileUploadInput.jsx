@@ -17,52 +17,25 @@ export function FileUploadInput({ name, accept, id, description, maxSize }) {
         <div className='flex flex-col items-center justify-center text-body pt-5 pb-6'>
           {fileName ? (
             <>
-              <svg
-                className='w-8 h-8 mb-4'
-                aria-hidden='true'
-                xmlns='http://www.w3.org/2000/svg'
-                width='24'
-                height='24'
-                fill='none'
-                viewBox='0 0 24 24'
-              >
-                <path
-                  stroke='currentColor'
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth='2'
-                  d='M9 17h6l3-3V6a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v11l3-1Zm0 0-3 1v2h12v-2l-3-1'
-                />
-              </svg>
-              <p className='mb-2 text-sm font-semibold'>{fileName}</p>
-              <p className='text-xs'>Click to change file</p>
+              <OutlineCloudDone className='w-7 h-7 mb-4 text-neutral-700' />
+              <p className='mb-2 text-sm font-semibold text-neutral-700'>
+                {fileName}
+              </p>
+              <p className='text-xs text-neutral-700'>Click to change file</p>
             </>
           ) : (
             <>
-              <svg
-                className='w-8 h-8 mb-4'
-                aria-hidden='true'
-                xmlns='http://www.w3.org/2000/svg'
-                width='24'
-                height='24'
-                fill='none'
-                viewBox='0 0 24 24'
-              >
-                <path
-                  stroke='currentColor'
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth='2'
-                  d='M15 17h3a3 3 0 0 0 0-6h-.025a5.56 5.56 0 0 0 .025-.5A5.5 5.5 0 0 0 7.207 9.021C7.137 9.017 7.071 9 7 9a4 4 0 1 0 0 8h2.167M12 19v-9m0 0-2 2m2-2 2 2'
-                />
-              </svg>
-              <p className='mb-2 text-sm'>
-                <span className='font-semibold'>Click to upload</span> or drag
-                and drop
+              <OutlineCloudUpload className='w-7 h-7 mb-4 text-neutral-700' />
+              <p className='mb-2 text-sm text-neutral-700'>
+                <span className='font-semibold text-neutral-700'>
+                  Click to choose
+                </span>{' '}
+                or drag and drop
               </p>
-              <p className='text-xs'>{description}</p>
-              <p className='text-xs mb-4'>
-                Max. File Size: <span className='font-semibold'>{maxSize}</span>
+              <p className='text-xs text-neutral-700'>{description}</p>
+              <p className='text-xs mb-4 text-neutral-700'>
+                Max. File Size:{' '}
+                <span className='font-semibold text-neutral-700'>{maxSize}</span>
               </p>
             </>
           )}
@@ -77,5 +50,39 @@ export function FileUploadInput({ name, accept, id, description, maxSize }) {
         />
       </label>
     </div>
+  )
+}
+
+function OutlineCloudDone(props) {
+  return (
+    <svg
+      xmlns='http://www.w3.org/2000/svg'
+      viewBox='0 0 24 24'
+      width='1em'
+      height='1em'
+      {...props}
+    >
+      <path
+        fill='currentColor'
+        d='M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5c0-2.64-2.05-4.78-4.65-4.96M19 18H6c-2.21 0-4-1.79-4-4c0-2.05 1.53-3.76 3.56-3.97l1.07-.11l.5-.95A5.47 5.47 0 0 1 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5l1.53.11A2.98 2.98 0 0 1 22 15c0 1.65-1.35 3-3 3m-9-3.82l-2.09-2.09L6.5 13.5L10 17l6.01-6.01l-1.41-1.41z'
+      ></path>
+    </svg>
+  )
+}
+
+function OutlineCloudUpload(props) {
+  return (
+    <svg
+      xmlns='http://www.w3.org/2000/svg'
+      viewBox='0 0 24 24'
+      width='1em'
+      height='1em'
+      {...props}
+    >
+      <path
+        fill='currentColor'
+        d='M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5c0-2.64-2.05-4.78-4.65-4.96M19 18H6c-2.21 0-4-1.79-4-4c0-2.05 1.53-3.76 3.56-3.97l1.07-.11l.5-.95A5.47 5.47 0 0 1 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5l1.53.11A2.98 2.98 0 0 1 22 15c0 1.65-1.35 3-3 3M8 13h2.55v3h2.9v-3H16l-4-4z'
+      ></path>
+    </svg>
   )
 }
