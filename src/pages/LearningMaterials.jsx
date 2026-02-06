@@ -58,7 +58,7 @@ export default function LearningMaterialsPage() {
     addNewClass,
     removeClassLocally,
   } = useClassManagement(materials)
-  const [showNewClassForm, setShowNewClassForm] = useState(false)
+
   const [collapsedClasses, setCollapsedClasses] = useState(new Set())
 
   useEffect(() => {
@@ -458,44 +458,19 @@ export default function LearningMaterialsPage() {
                   Select Class{' '}
                   <span className='text-neutral-400'>(optional)</span>
                 </label>
-                {!showNewClassForm ? (
-                  <div className='flex gap-2'>
-                    <select
-                      value={selectedClass}
-                      onChange={(e) => setSelectedClass(e.target.value)}
-                      className='flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm'
-                    >
-                      <option value=''>-- None (Uncategorized) --</option>
-                      {classes.map((cls) => (
-                        <option key={cls.name} value={cls.name}>
-                          {cls.name}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type='button'
-                      onClick={() => setShowNewClassForm(true)}
-                      className='btn-outline text-sm'
-                      title='Create new class'
-                    >
-                      +
-                    </button>
-                  </div>
-                ) : (
-                  <CreateClassForm
-                    classes={classes}
-                    addNewClass={addNewClass}
-                    onSuccess={(className) => {
-                      setShowNewClassForm(false)
-                      setUploadState({
-                        uploading: false,
-                        error: '',
-                        success: `Class "${className}" created.`,
-                      })
-                    }}
-                    onCancel={() => setShowNewClassForm(false)}
-                  />
-                )}
+                <CreateClassForm
+                  classes={classes}
+                  selectedClass={selectedClass}
+                  setSelectedClass={setSelectedClass}
+                  addNewClass={addNewClass}
+                  onSuccess={(className) => {
+                    setUploadState({
+                      uploading: false,
+                      error: '',
+                      success: `Class "${className}" created.`,
+                    })
+                  }}
+                />
               </div>
               <input
                 type='file'
