@@ -6,6 +6,7 @@ import LoadingSpinner from '../components/LoadingSpinner.jsx'
 import CreateClassForm from '../components/CreateClassForm.jsx'
 import { API_BASE, authHeaders, http } from '../lib/api.js'
 import { useClassManagement } from '../hooks/useClassManagement.js'
+import { FileUploadInput } from '../components/FileUploadInput.jsx'
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
@@ -448,16 +449,12 @@ export default function LearningMaterialsPage() {
 
       <div className='grid gap-6 lg:grid-cols-[320px,1fr]'>
         <aside className='space-y-6'>
-          <section className='card space-y-4 p-5'>
+          <section className='card space-y-3 p-5'>
             <h2 className='text-sm font-semibold uppercase tracking-wide text-neutral-500'>
               Upload material
             </h2>
-            <form onSubmit={handleUpload} className='space-y-3'>
+            <form onSubmit={handleUpload} className='space-y-6'>
               <div>
-                <label className='mb-1 block text-xs font-medium text-neutral-700'>
-                  Select Class{' '}
-                  <span className='text-neutral-400'>(optional)</span>
-                </label>
                 <CreateClassForm
                   classes={classes}
                   selectedClass={selectedClass}
@@ -472,11 +469,13 @@ export default function LearningMaterialsPage() {
                   }}
                 />
               </div>
-              <input
-                type='file'
-                name='material'
-                accept='.pdf,.txt'
-                className='w-full text-sm'
+              <FileUploadInput
+                name={'material'}
+                accept={'.pdf,.txt'}
+                description={'PDF, TXT files only.'}
+                maxSize={'50MB'}
+                id={'dropzone-file'}
+                key={uploadState.success}
               />
               <button
                 type='submit'
@@ -485,9 +484,11 @@ export default function LearningMaterialsPage() {
               >
                 {uploadState.uploading ? 'Uploading...' : 'Upload'}
               </button>
+              {/* TODO: Change this note into a tooltip when hovering
+              over an information "i" icon placed next to the header: "UPLOAD MATERIAL"  */}
               <p className='text-xs text-neutral-500'>
-                PDF or text files up to 50MB. Text is extracted so you can skim
-                and copy notes.
+                Text is extracted so you can generate flashcards, summaries, and
+                quizzes.
               </p>
             </form>
           </section>

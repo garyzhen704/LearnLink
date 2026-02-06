@@ -76,6 +76,12 @@
   .sidebar {
     @apply fixed left-0 top-0 z-40 flex h-screen flex-col overflow-hidden border-r border-neutral-200 bg-white transition-[width] duration-300
   }
+  .icon-btn {
+    @apply w-9 h-9 inline-flex cursor-pointer items-center justify-center rounded-lg px-2 py-2 text-sm font-medium transition;
+  }
+  .icon-btn-outline {
+    @apply icon-btn border border-neutral-300 hover:bg-neutral-50;
+  }
 }
 
 @layer utilities {

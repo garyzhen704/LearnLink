@@ -40,7 +40,7 @@ export default function CreateClassForm({
 
   return showNewClassForm ? (
     <div className='flex flex-col space-y-3 rounded-lg border border-neutral-300 p-4'>
-      <div className='flex gap-6 border-b border-neutral-200 pb-3'>
+      <div className='flex gap-6 border-b border-neutral-100 pb-3'>
         <div className='flex flex-col w-[61%] space-y-2'>
           <label className='text-xs text-neutral-600'>Name</label>
           <input
@@ -87,27 +87,33 @@ export default function CreateClassForm({
       </div>
     </div>
   ) : (
-    <div className='flex gap-2'>
-      <select
-        value={selectedClass}
-        onChange={(e) => setSelectedClass(e.target.value)}
-        className='flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm'
-      >
-        <option value=''>-- None (Uncategorized) --</option>
-        {classes.map((cls) => (
-          <option key={cls.name} value={cls.name}>
-            {cls.name}
-          </option>
-        ))}
-      </select>
-      <button
-        type='button'
-        onClick={() => setShowNewClassForm(true)}
-        className='btn-outline text-sm'
-        title='Create new class'
-      >
-        +
-      </button>
+    <div className='flex flex-col'>
+      <label className='mb-1 block text-xs font-medium text-neutral-700'>
+        Select Class <span className='text-neutral-400'>(optional)</span>
+      </label>
+
+      <div className='flex gap-2'>
+        <select
+          value={selectedClass}
+          onChange={(e) => setSelectedClass(e.target.value)}
+          className='flex-1 h-9 cursor-pointer rounded-lg border border-neutral-300 px-3 py-2 text-sm'
+        >
+          <option value=''>-- None (Uncategorized) --</option>
+          {classes.map((cls) => (
+            <option key={cls.name} value={cls.name}>
+              {cls.name}
+            </option>
+          ))}
+        </select>
+        <button
+          type='button'
+          onClick={() => setShowNewClassForm(true)}
+          className='icon-btn-outline'
+          title='Create new class'
+        >
+          +
+        </button>
+      </div>
     </div>
   )
 }
