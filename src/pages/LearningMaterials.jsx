@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Page from '../components/Page.jsx'
 import StatusMessage from '../components/StatusMessage.jsx'
@@ -7,6 +7,7 @@ import CreateClassForm from '../components/CreateClassForm.jsx'
 import { API_BASE, authHeaders, http } from '../lib/api.js'
 import { useClassManagement } from '../hooks/useClassManagement.js'
 import { FileUploadInput } from '../components/FileUploadInput.jsx'
+import { useRagPersistence } from '../hooks/useRagPersistence.js'
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
@@ -59,8 +60,19 @@ export default function LearningMaterialsPage() {
     addNewClass,
     removeClassLocally,
   } = useClassManagement(materials)
+  const {
+    getMaterialRagState,
+    setQuestionDraft,
+    setAnswerForMaterial,
+    removeRagState,
+  } = useRagPersistence()
 
   const [collapsedClasses, setCollapsedClasses] = useState(new Set())
+  const selectedIdRef = useRef('')
+
+  useEffect(() => {
+    selectedIdRef.current = selectedId
+  }, [selectedId])
 
   useEffect(() => {
     let alive = true
@@ -115,14 +127,15 @@ export default function LearningMaterialsPage() {
 
   useEffect(() => {
     setAnalysisState({ loading: '', error: '', success: null })
+    const materialRagState = getMaterialRagState(selectedId)
     setRagState({
-      question: '',
+      question: materialRagState.question,
       loading: false,
       error: '',
-      answer: '',
-      sources: [],
+      answer: materialRagState.answer,
+      sources: materialRagState.sources,
     })
-  }, [selectedId])
+  }, [selectedId, getMaterialRagState])
 
   const handleUpload = async (event) => {
     event.preventDefault()
@@ -205,6 +218,7 @@ export default function LearningMaterialsPage() {
         }
 
         setMaterials((prev) => prev.filter((m) => m.className !== className))
+        removeRagState(materialsInClass.map((material) => material.id))
         if (materialsInClass.some((m) => m.id === selectedId)) {
           setSelectedId('')
         }
@@ -227,6 +241,7 @@ export default function LearningMaterialsPage() {
     if (!confirmation) return
     try {
       await http(`/materials/${materialId}`, { method: 'DELETE' })
+      removeRagState(materialId)
       setMaterials((prev) => {
         const nextList = prev.filter((item) => item.id !== materialId)
         if (selectedId === materialId) {
@@ -306,6 +321,7 @@ export default function LearningMaterialsPage() {
   const handleAskRag = async (event) => {
     event.preventDefault()
     if (!selectedId || ragState.loading) return
+    const askedMaterialId = selectedId
     const question = ragState.question.trim()
     if (!question) {
       setRagState((prev) => ({
@@ -328,27 +344,47 @@ export default function LearningMaterialsPage() {
       const payload = await http('/rag/answer', {
         method: 'POST',
         body: JSON.stringify({
-          materialId: selectedId,
+          materialId: askedMaterialId,
           query: question,
           className: selected?.className,
         }),
       })
 
-      setRagState((prev) => ({
-        ...prev,
-        loading: false,
-        answer: payload?.answer || '',
-        sources: Array.isArray(payload?.sources) ? payload.sources : [],
-      }))
+      const nextAnswer = payload?.answer || ''
+      const nextSources = Array.isArray(payload?.sources) ? payload.sources : []
+
+      setAnswerForMaterial(askedMaterialId, nextAnswer, nextSources)
+
+      if (selectedIdRef.current === askedMaterialId) {
+        setRagState((prev) => ({
+          ...prev,
+          loading: false,
+          answer: nextAnswer,
+          sources: nextSources,
+        }))
+      }
     } catch (error) {
-      setRagState((prev) => ({
-        ...prev,
-        loading: false,
-        error: error.message || 'Failed to get an answer.',
-        answer: '',
-        sources: [],
-      }))
+      if (selectedIdRef.current === askedMaterialId) {
+        setRagState((prev) => ({
+          ...prev,
+          loading: false,
+          error: error.message || 'Failed to get an answer.',
+          answer: '',
+          sources: [],
+        }))
+      }
     }
+  }
+
+  const handleClearRagState = () => {
+    removeRagState(selectedId)
+    setRagState({
+      question: '',
+      loading: false,
+      error: '',
+      answer: '',
+      sources: [],
+    })
   }
 
   const viewerSource = useMemo(() => {
@@ -765,11 +801,15 @@ export default function LearningMaterialsPage() {
                         placeholder='Ask a question about this material...'
                         value={ragState.question}
                         onChange={(event) =>
-                          setRagState((prev) => ({
-                            ...prev,
-                            question: event.target.value,
-                            error: '',
-                          }))
+                          {
+                            const nextQuestion = event.target.value
+                            setRagState((prev) => ({
+                              ...prev,
+                              question: nextQuestion,
+                              error: '',
+                            }))
+                            setQuestionDraft(selectedId, nextQuestion)
+                          }
                         }
                       />
                     </label>
@@ -780,6 +820,14 @@ export default function LearningMaterialsPage() {
                         disabled={ragState.loading}
                       >
                         {ragState.loading ? 'Asking...' : 'Ask'}
+                      </button>
+                      <button
+                        type='button'
+                        className='btn-outline text-sm'
+                        onClick={handleClearRagState}
+                        disabled={ragState.loading}
+                      >
+                        Clear
                       </button>
                       <span>
                         Index status:{' '}
