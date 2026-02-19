@@ -144,7 +144,7 @@ export default function LearningMaterialsPage() {
     if (!file) {
       setUploadState({
         uploading: false,
-        error: 'Select a PDF or text file to upload.',
+        error: 'Select a PDF, TXT, or CSV file to upload.',
         success: '',
       })
       return
@@ -421,7 +421,7 @@ export default function LearningMaterialsPage() {
   return (
     <Page
       title='Learning Materials'
-      subtitle='Upload, read, and review PDFs or text notes alongside your study sets.'
+      subtitle='Upload, read, and review PDFs, text notes, or CSV files alongside your study sets.'
     >
       {listError ? (
         <StatusMessage tone='error' className='mb-4'>
@@ -507,8 +507,8 @@ export default function LearningMaterialsPage() {
               </div>
               <FileUploadInput
                 name={'material'}
-                accept={'.pdf,.txt'}
-                description={'PDF, TXT files only.'}
+                accept={'.pdf,.txt,.csv,application/vnd.ms-excel'}
+                description={'PDF, TXT, or CSV (term, definition) files.'}
                 maxSize={'50MB'}
                 id={'dropzone-file'}
                 key={uploadState.success}
