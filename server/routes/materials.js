@@ -1,3 +1,4 @@
+import { parse } from 'csv-parse/sync';
 import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
@@ -26,7 +27,7 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-const ALLOWED_TYPES = ['application/pdf', 'text/plain'];
+const ALLOWED_TYPES = ['application/pdf', 'text/plain', 'text/csv', 'application/vnd.ms-excel',];
 
 const storage = multer.diskStorage({
   destination: uploadsDir,
@@ -52,7 +53,7 @@ const upload = multer({
 function extractErrorMessage(error) {
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') return 'File too large. Maximum size is 50MB.';
-    if (error.code === 'LIMIT_UNEXPECTED_FILE') return 'Unsupported file type. Please upload PDF or TXT files.';
+    if (error.code === 'LIMIT_UNEXPECTED_FILE') return 'Unsupported file type. Please upload PDF, TXT, or CSV files.';
     return error.message;
   }
   return error.message || 'Upload failed.';
@@ -264,6 +265,28 @@ async function extractFileContent(filePath, mimeType) {
     if (mimeType === 'text/plain') {
       const text = await fsp.readFile(filePath, 'utf8');
       return text.trim();
+    }
+
+    if (mimeType === 'text/csv' || mimeType === 'application/vnd.ms-excel') {
+      const csvText = await fsp.readFile(filePath, 'utf8');
+
+      const records = parse(csvText, {
+        columns: false,
+        skip_empty_lines: true,
+        trim: true,
+      });
+
+      // Convert CSV → readable text
+      // term,definition → "Term: X\nDefinition: Y"
+      const formatted = records
+        .map(([term, definition]) => {
+          if (!term || !definition) return null;
+          return `Term: ${term}\nDefinition: ${definition}`;
+        })
+        .filter(Boolean)
+        .join('\n\n');
+
+      return formatted;
     }
   } catch (error) {
     console.warn(`Failed to extract content from ${filePath}`, error);
