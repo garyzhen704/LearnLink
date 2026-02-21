@@ -143,6 +143,55 @@ export async function createQuizFromText(text, count = 5) {
   return fallbackQuiz(sourceText, requested);
 }
 
+export async function gradeFlashcardDefinition({
+  term,
+  expectedDefinition,
+  transcript,
+}) {
+  const expected = String(expectedDefinition || '').trim();
+  const spoken = String(transcript || '').trim();
+
+  if (!expected || !spoken) {
+    return {
+      score: 0,
+      reason: 'Missing expected definition or spoken answer.',
+    };
+  }
+
+  const response = await runGemini(
+    [
+      'You grade spoken flashcard answers.',
+      'Compare the spoken answer against the expected definition with semantic meaning as the main criterion.',
+      'Allow paraphrasing and minor wording differences.',
+      'Return strict JSON object with keys: score (number 0..1), reason (string, max 140 chars).',
+      'Do not include markdown or extra keys.',
+    ].join(' '),
+    JSON.stringify({
+      term: String(term || '').trim(),
+      expectedDefinition: expected,
+      spokenAnswer: spoken,
+    }),
+    { temperature: 0.1, maxTokens: 220, responseMimeType: 'application/json' },
+  );
+
+  const parsed = safeParseJsonObject(response);
+  const parsedScore = clampUnit(parsed?.score);
+  const parsedReason = String(parsed?.reason || '').trim().slice(0, 140);
+
+  if (Number.isFinite(parsedScore)) {
+    return {
+      score: parsedScore,
+      reason: parsedReason || fallbackReason(parsedScore),
+    };
+  }
+
+  const fallbackScore = fallbackDefinitionScore(expected, spoken);
+  return {
+    score: fallbackScore,
+    reason: fallbackReason(fallbackScore),
+  };
+}
+
 export function buildDerivedTitle(originalName, suffix) {
   const base = String(originalName || '').replace(/\.[^.]+$/, '').trim();
   if (!base) return suffix;
@@ -216,4 +265,58 @@ function safeParseJsonArray(payload) {
     console.warn('Failed to parse JSON array from model output', error);
     return null;
   }
+}
+
+function safeParseJsonObject(payload) {
+  if (!payload) return null;
+  try {
+    const trimmed = payload.trim();
+    const match = trimmed.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    const parsed = JSON.parse(match[0]);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+  } catch (error) {
+    console.warn('Failed to parse JSON object from model output', error);
+    return null;
+  }
+}
+
+function clampUnit(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return Number.NaN;
+  return Math.min(1, Math.max(0, Number(number.toFixed(2))));
+}
+
+function fallbackDefinitionScore(expected, spoken) {
+  const expectedTokens = tokenizeMeaningful(expected);
+  const spokenTokens = tokenizeMeaningful(spoken);
+  if (!expectedTokens.length || !spokenTokens.length) return 0;
+
+  const spokenSet = new Set(spokenTokens);
+  const common = expectedTokens.filter((token) => spokenSet.has(token)).length;
+  const recall = common / expectedTokens.length;
+  const precision = common / spokenTokens.length;
+  const f1 = recall + precision > 0 ? (2 * recall * precision) / (recall + precision) : 0;
+
+  return Math.min(1, Math.max(0, Number(f1.toFixed(2))));
+}
+
+function tokenizeMeaningful(input) {
+  const stopWords = new Set([
+    'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from', 'in',
+    'is', 'it', 'of', 'on', 'or', 'that', 'the', 'to', 'with',
+  ]);
+
+  return String(input || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((token) => token.length > 2 && !stopWords.has(token));
+}
+
+function fallbackReason(score) {
+  if (score >= 0.85) return 'Strong semantic match.';
+  if (score >= 0.7) return 'Mostly correct, but missing some key detail.';
+  if (score >= 0.45) return 'Partially correct, but core meaning is incomplete.';
+  return 'Answer does not match the expected definition closely enough.';
 }

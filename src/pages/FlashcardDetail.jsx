@@ -10,6 +10,7 @@ import Page from '../components/Page.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
 import LoadingSpinner from '../components/LoadingSpinner.jsx';
 import { http } from '../lib/api.js';
+import useSpeechToText from '../hooks/useSpeechToText.js';
 
 export default function FlashcardDetailPage() {
   const { id } = useParams();
@@ -24,6 +25,9 @@ export default function FlashcardDetailPage() {
   const [matchingSelections, setMatchingSelections] = useState({ term: null, definition: null });
   const [matchingIncorrect, setMatchingIncorrect] = useState(null);
   const [matchingStarted, setMatchingStarted] = useState(false);
+  const [isGradingSpeech, setIsGradingSpeech] = useState(false);
+  const [speechGrade, setSpeechGrade] = useState(null);
+  const [speechGradeError, setSpeechGradeError] = useState('');
   const mismatchTimeoutRef = useRef(null);
 
   const clearMismatchFeedback = useCallback(() => {
@@ -66,6 +70,53 @@ export default function FlashcardDetailPage() {
 
   const total = cards.length;
   const current = total ? cards[index] : null;
+  const handleSpokenTranscript = useCallback(
+    async (spokenTranscript) => {
+      if (!current?.definition?.trim()) {
+        setSpeechGrade(null);
+        return;
+      }
+
+      setIsGradingSpeech(true);
+      setSpeechGradeError('');
+
+      try {
+        const response = await http('/ai/grade-flashcard', {
+          method: 'POST',
+          body: JSON.stringify({
+            term: current.term || '',
+            expectedDefinition: current.definition,
+            transcript: spokenTranscript,
+          }),
+        });
+
+        setSpeechGrade({
+          correct: Boolean(response?.correct),
+          score: Number(response?.score) || 0,
+          reason: String(response?.reason || '').trim(),
+        });
+      } catch (err) {
+        setSpeechGradeError(err.message || 'Failed to grade spoken answer.');
+        setSpeechGrade(null);
+      } finally {
+        setIsGradingSpeech(false);
+      }
+    },
+    [current],
+  );
+
+  const {
+    isSupported: speechSupported,
+    isRecording,
+    isTranscribing,
+    transcript,
+    error: speechError,
+    startRecording,
+    stopRecording,
+    clearResult: clearSpeechResult,
+  } = useSpeechToText({ onTranscript: handleSpokenTranscript, language: 'en' });
+  const speechBusy = isRecording || isTranscribing || isGradingSpeech;
+
   const validMatchingCards = useMemo(
     () => cards.filter((card) => (card.term?.trim() ?? '') !== '' && (card.definition?.trim() ?? '') !== ''),
     [cards],
@@ -115,6 +166,12 @@ export default function FlashcardDetailPage() {
     setMatchingSelections({ term: null, definition: null });
     clearMismatchFeedback();
   }, [id, clearMismatchFeedback]);
+
+  useEffect(() => {
+    clearSpeechResult();
+    setSpeechGrade(null);
+    setSpeechGradeError('');
+  }, [id, index, clearSpeechResult]);
 
   useEffect(
     () => () => {
@@ -227,6 +284,14 @@ export default function FlashcardDetailPage() {
     [handleFlipToggle],
   );
 
+  const handleSpeechButtonClick = useCallback(() => {
+    if (isRecording) {
+      stopRecording();
+      return;
+    }
+    startRecording();
+  }, [isRecording, startRecording, stopRecording]);
+
   if (loading) {
     return (
       <Page title="Loading set" subtitle="Please wait">
@@ -253,7 +318,7 @@ export default function FlashcardDetailPage() {
       actions={
         <div className="flex gap-2">
           <Link to={`/flashcards/new?edit=${setData?._id}`} className="btn-outline">Edit</Link>
-          <button type="button" className="btn-ghost" onClick={shuffle}>Shuffle</button>
+          <button type="button" className="btn-ghost" onClick={shuffle} disabled={speechBusy}>Shuffle</button>
         </div>
       }
     >
@@ -300,13 +365,13 @@ export default function FlashcardDetailPage() {
           <div className="card p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
-                <button type="button" onClick={goPrev} className="btn-outline w-full sm:w-auto" disabled={!total}>
+                <button type="button" onClick={goPrev} className="btn-outline w-full sm:w-auto" disabled={!total || speechBusy}>
                   Previous
                 </button>
-                <button type="button" onClick={goNext} className="btn-primary w-full sm:w-auto" disabled={!total}>
+                <button type="button" onClick={goNext} className="btn-primary w-full sm:w-auto" disabled={!total || speechBusy}>
                   Next
                 </button>
-                <button type="button" onClick={shuffle} className="btn-ghost w-full sm:w-auto" disabled={!total}>
+                <button type="button" onClick={shuffle} className="btn-ghost w-full sm:w-auto" disabled={!total || speechBusy}>
                   Shuffle cards
                 </button>
               </div>
@@ -314,6 +379,58 @@ export default function FlashcardDetailPage() {
                 Use arrow keys to navigate, spacebar to flip.
               </p>
             </div>
+          </div>
+
+          <div className="card p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-base font-semibold text-neutral-900">Speak the definition</p>
+                <p className="text-sm text-neutral-500">
+                  Prompt: <span className="font-medium text-neutral-700">{current?.term || '(no term)'}</span>
+                </p>
+              </div>
+              <button
+                type="button"
+                className={`w-full sm:w-auto ${isRecording ? 'btn-primary' : 'btn-outline'}`}
+                onClick={handleSpeechButtonClick}
+                disabled={!total || !speechSupported || isTranscribing || isGradingSpeech}
+              >
+                {isRecording ? 'Stop and submit' : 'Start mic'}
+              </button>
+            </div>
+
+            {!speechSupported ? (
+              <StatusMessage tone="warning" className="mt-3">
+                This browser does not support microphone recording.
+              </StatusMessage>
+            ) : null}
+
+            {isRecording ? (
+              <p className="mt-3 text-sm text-neutral-600">Recording... tap stop when you finish answering.</p>
+            ) : null}
+            {isTranscribing ? (
+              <p className="mt-3 text-sm text-neutral-600">Transcribing audio...</p>
+            ) : null}
+            {isGradingSpeech ? (
+              <p className="mt-3 text-sm text-neutral-600">Checking answer...</p>
+            ) : null}
+
+            {speechError ? <StatusMessage tone="error" className="mt-3">{speechError}</StatusMessage> : null}
+            {speechGradeError ? <StatusMessage tone="error" className="mt-3">{speechGradeError}</StatusMessage> : null}
+
+            {transcript ? (
+              <div className="mt-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Transcript</p>
+                <p className="mt-1 text-sm text-neutral-700">{transcript}</p>
+              </div>
+            ) : null}
+
+            {speechGrade ? (
+              <StatusMessage tone={speechGrade.correct ? 'success' : 'warning'} className="mt-3">
+                {speechGrade.correct ? 'Correct.' : 'Not quite.'} Score: {Math.round(speechGrade.score * 100)}%
+                {speechGrade.reason ? ` ${speechGrade.reason}` : ''}
+              </StatusMessage>
+            ) : null}
           </div>
 
           {setData?.description ? (
@@ -421,12 +538,14 @@ export default function FlashcardDetailPage() {
                     <button
                       type="button"
                       onClick={() => {
+                        if (speechBusy) return;
                         setIndex(i);
                         setFlipped(false);
                       }}
                       className={`w-full truncate rounded-lg px-3 py-2 text-left transition ${
                         i === index ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100'
                       }`}
+                      disabled={speechBusy}
                     >
                       {card.term || '(no term)'}
                     </button>
