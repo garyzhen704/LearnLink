@@ -13,6 +13,7 @@ import aiRoutes from './routes/ai.js';
 import adminRoutes from './routes/admin.js';
 import materialsRoutes from './routes/materials.js';
 import ragRoutes from './routes/rag.js';
+import audioRoutes from './routes/audio.js';
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use('/ai', aiRoutes);
 app.use('/admin', adminRoutes);
 app.use('/materials', materialsRoutes);
 app.use('/rag', ragRoutes);
+app.use('/audio', audioRoutes);
 app.use('/uploads', express.static(uploadsDir));
 
 app.use((req, res) => {
@@ -47,6 +49,7 @@ app.use((req, res) => {
 
 
 app.use((err, req, res, next) => {
+  void next;
   console.error('Error handler caught:', err);
   
   if (err.type === 'entity.too.large') {

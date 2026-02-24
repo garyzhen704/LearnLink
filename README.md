@@ -31,6 +31,7 @@ JWT_SECRET=super-secret
 PORT=4000
 CLIENT_ORIGIN=http://localhost:5173
 GEMINI_API_KEY=your-google-gemini-key
+OPENAI_API_KEY=
 ```
 
 Only variables prefixed with `VITE_` are exposed to the browser; everything else stays on the server.
