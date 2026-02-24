@@ -31,7 +31,8 @@ JWT_SECRET=super-secret
 PORT=4000
 CLIENT_ORIGIN=http://localhost:5173
 GEMINI_API_KEY=your-google-gemini-key
-OPENAI_API_KEY=
+OPENAI_API_KEY=your-openai-key
+OPENAI_WHISPER_MODEL=whisper-1 # optional
 ```
 
 Only variables prefixed with `VITE_` are exposed to the browser; everything else stays on the server.
@@ -42,7 +43,7 @@ Only variables prefixed with `VITE_` are exposed to the browser; everything else
 - `/dashboard` – recent flashcard sets and quizzes with quick search suggestions.
 - `/flashcards` – manage sets, duplicate, delete, or jump into study mode.
 - `/flashcards/new` – full React flashcard builder (supports duplication or editing via query params).
-- `/flashcards/:id` – interactive card viewer with keyboard navigation and shuffle.
+- `/flashcards/:id` – interactive card viewer with keyboard navigation, shuffle, and **Active Spoken Recall** (voice-based grading).
 - `/materials` – upload PDFs/notes and organize them into color-coded class folders.
 - `/rag/search` – retrieve top-k chunks from indexed materials using Atlas Vector Search.
 - `/rag/answer` – answer questions grounded in retrieved chunks (RAG).
@@ -50,6 +51,14 @@ Only variables prefixed with `VITE_` are exposed to the browser; everything else
 - `/quizzes` – create multiple‑choice quizzes and manage existing ones.
 - `/quizzes/:id/play` – lightweight quiz player that scores client side.
 - `/admin` – admin-only search and moderation tools (delete sets/cards/quizzes).
+
+## Voice Integration (Whisper)
+
+LearnLink now supports **Active Spoken Recall** to enhance pedagogical value. Users can speak their answers aloud, which are then processed via a modular AI pipeline:
+
+1.  **Transcription**: Audio is captured via `MediaRecorder` API and sent to the `/audio/transcribe` endpoint (powered by OpenAI Whisper).
+2.  **Semantic Grading**: The resulting transcript is compared against the correct definition using Gemini to judge semantic accuracy rather than exact word matching.
+3.  **Feedback**: Users receive a score and specific AI feedback on their spoken answer.
 
 ## Styling & components
 
