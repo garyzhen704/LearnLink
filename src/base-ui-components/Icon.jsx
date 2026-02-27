@@ -1,7 +1,8 @@
 const variantClasses = {
   'base': '',
+  'default': 'text-ds-foreground',
   'primary-foreground':  'text-ds-primary',
-  'foreground':          'text-ds-primary-fg',
+  'foreground': 'text-ds-primary-fg',
   'danger-foreground':   'text-ds-danger',
   'disabled-foreground': 'text-ds-disabled-fg',
   'foreground-muted':    'text-ds-foreground-muted',

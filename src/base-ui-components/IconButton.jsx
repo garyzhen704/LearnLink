@@ -36,8 +36,8 @@ const sizeClasses = {
 
 const iconVariants = {
   filled: 'foreground',
-  outline: 'foreground-muted',
-  ghost: 'foreground-muted',
+  outline: 'default',
+  ghost: 'default',
   danger: 'foreground',
   disabled: 'disabled-foreground',
 }

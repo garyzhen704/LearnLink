@@ -224,14 +224,10 @@ export default function DashboardPage() {
                     <span className='tag'>
                       {set.cardsCount ?? set.cards?.length ?? 0} cards
                     </span>
-                    {/* Replace '...' with icon */}
                     <Menu
                       align='end'
                       trigger={
                         <IconButton icon={Ellipsis} variant='ghost' size='md' />
-                        // <Button variant='ghost' size='md'  iconLeading={<Icon icon={Ellipsis} size='lg' />}>
-
-                        // </Button>
                       }
                       items={[
                         {
