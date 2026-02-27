@@ -11,13 +11,17 @@ import {
   ChevronIcon,
   LinkIcon,
 } from './Icons.jsx'
+import { House, Layers, LibraryBig, WandSparkles, ClipboardList } from 'lucide-react'
+import { Button } from '../base-ui-components/Button.jsx'
+import { Icon } from '../base-ui-components/Icon.jsx'
+import { IconButton } from '../base-ui-components/IconButton.jsx'
 
 const NAV_ITEMS = [
-  { to: '/dashboard', label: 'Dashboard', icon: HomeIcon },
-  { to: '/flashcards', label: 'Flashcards', icon: CardsIcon },
-  { to: '/materials', label: 'Learning Materials', icon: BookIcon },
-  { to: '/ai-flashcards', label: 'AI Flashcards', icon: SparklesIcon },
-  { to: '/quizzes', label: 'Quizzes', icon: ClipboardIcon },
+  { to: '/dashboard', label: 'Dashboard', icon: House },
+  { to: '/flashcards', label: 'Flashcards', icon: Layers },
+  { to: '/materials', label: 'Learning Materials', icon: LibraryBig },
+  { to: '/ai-flashcards', label: 'AI Flashcards', icon: WandSparkles },
+  { to: '/quizzes', label: 'Quizzes', icon: ClipboardList },
 ]
 
 export default function Sidebar({ className = '', isOpen, onToggle }) {
@@ -91,7 +95,7 @@ function NavListItem({ item, showLabel }) {
         to={item.to}
         className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
       >
-        <item.icon className='h-5 w-5 shrink-0' />
+        <Icon variant='base' icon={item.icon} size='md' className={'w-5'} />
         {showLabel && <span className='text-nowrap'>{item.label}</span>}
       </NavLink>
     </li>

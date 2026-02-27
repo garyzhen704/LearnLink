@@ -7,7 +7,10 @@ import { http, buildQuery } from '../lib/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import useDebounce from '../hooks/useDebounce.js'
 import { Button } from '../base-ui-components/Button.jsx'
+import { IconButton } from '../base-ui-components/IconButton.jsx'
 import { Menu } from '../base-ui-components/Menu.jsx'
+import { Icon } from '../base-ui-components/Icon.jsx'
+import {Ellipsis} from 'lucide-react'
 
 export default function DashboardPage() {
   const { username } = useAuth()
@@ -225,9 +228,10 @@ export default function DashboardPage() {
                     <Menu
                       align='end'
                       trigger={
-                        <Button variant='ghost' size='sm'>
-                          •••
-                        </Button>
+                        <IconButton icon={Ellipsis} variant='ghost' size='md' />
+                        // <Button variant='ghost' size='md'  iconLeading={<Icon icon={Ellipsis} size='lg' />}>
+
+                        // </Button>
                       }
                       items={[
                         {
