@@ -19,7 +19,7 @@ function renderItem(item, index) {
     return (
       <BaseMenu.Separator
         key={index}
-        className="my-ds-1.5 h-px bg-ds-border mx-ds-3"
+        className='my-ds-1.5 h-px bg-ds-border mx-ds-3'
       />
     )
   }

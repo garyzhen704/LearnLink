@@ -10,7 +10,8 @@ import { Button } from '../base-ui-components/Button.jsx'
 import { IconButton } from '../base-ui-components/IconButton.jsx'
 import { Menu } from '../base-ui-components/Menu.jsx'
 import { Icon } from '../base-ui-components/Icon.jsx'
-import {Ellipsis} from 'lucide-react'
+import { Ellipsis } from 'lucide-react'
+import { Card } from '../components/Card.jsx'
 
 export default function DashboardPage() {
   const { username } = useAuth()
@@ -135,11 +136,9 @@ export default function DashboardPage() {
       subtitle='Pick up where you left off or start something new.'
       actions={
         <div className='hidden gap-2 md:flex'>
-          {/* <Link to="/flashcards/new" className="btn-outline">New flashcard set</Link> */}
           <Link to='/flashcards/new'>
             <Button variant='outline'>New flashcard set</Button>
           </Link>
-          {/* <Link to="/quizzes" className="btn-primary">New quiz</Link> */}
           <Link to='/quizzes'>
             <Button>New Quiz</Button>
           </Link>
@@ -208,52 +207,28 @@ export default function DashboardPage() {
             emptyLabel='No sets yet. Create your first one!'
             items={sets}
             renderItem={(set) => (
-              <article key={set._id} className='card p-4'>
-                <div className='flex items-start justify-between gap-3'>
-                  <div className='space-y-1'>
-                    <h3 className='text-sm font-semibold text-neutral-900'>
-                      {set.title || '(untitled set)'}
-                    </h3>
-                    {set.description ? (
-                      <p className='text-xs text-neutral-600 line-clamp-2'>
-                        {set.description}
-                      </p>
-                    ) : null}
-                  </div>
-                  <div className='flex items-center gap-2'>
-                    <span className='tag'>
-                      {set.cardsCount ?? set.cards?.length ?? 0} cards
-                    </span>
-                    <Menu
-                      align='end'
-                      trigger={
-                        <IconButton icon={Ellipsis} variant='ghost' size='md' />
-                      }
-                      items={[
-                        {
-                          label: 'Duplicate',
-                          onSelect: () => navigate(`/flashcards/new?clone=${set._id}`),
-                        },
-                        // { type: 'separator' },
-                        {
-                          label: 'Delete',
-                          onSelect: () => deleteSet(set._id),
-                          danger: true,
-                        },
-                      ]}
-                    />
-                  </div>
-                </div>
-                <div className='mt-4 flex gap-2'>
-                  <Link
-                    to={`/flashcards/${set._id}`}
-                    // className='btn-outline flex-1 text-center text-sm'
-                  >
-                    <Button variant='outline'>Study</Button>
-                  </Link>
-
-                </div>
-              </article>
+              <Card
+                key={set._id}
+                set={set}
+                menuItems={[
+                  {
+                    label: 'Duplicate',
+                    onSelect: (event) => {
+                      event.stopPropagation()
+                      navigate(`/flashcards/new?clone=${set._id}`)
+                    },
+                  },
+                  // { type: 'separator' },
+                  {
+                    label: 'Delete',
+                    onSelect: (event) => {
+                      event.stopPropagation()
+                      deleteSet(set._id)
+                    },
+                    danger: true,
+                  },
+                ]}
+              />
             )}
           />
 

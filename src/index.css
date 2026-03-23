@@ -4,6 +4,7 @@
 
 :root {
   --ds-primary: #0d2450;
+  --color-text-dark: #0D0D0E;
   --ds-primary-hover: #162033;
   --ds-primary-pressed: #121a29;
   --ds-primary-fg: #ffffff;
@@ -25,6 +26,7 @@
   --ds-toggle-on: #0d2450;
   --ds-indicator: #ffffff;
   --ds-radius-md: 6px;
+  --ds-radius-xl: 12px;
 }
 
 @layer base {
@@ -35,7 +37,7 @@
 
 @layer components {
   .card {
-    @apply rounded-2xl border border-neutral-200 bg-white shadow-card;
+    @apply rounded-xl border border-ds-border bg-white transition-shadow hover:shadow-card;
   }
   .flashcard-container {
     @apply relative w-full;
