@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Page from '../components/Page.jsx';
+import GeneratedFromBadges from '../components/GeneratedFromBadges.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
 import { http } from '../lib/api.js';
 import useDebounce from '../hooks/useDebounce.js';
@@ -95,15 +96,16 @@ export default function FlashcardsPage() {
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {filteredSets.map((set) => (
             <article key={set._id} className="card p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <h3 className="text-sm font-semibold text-neutral-900">{set.title || '(untitled set)'}</h3>
-                  {set.description ? (
-                    <p className="text-xs text-neutral-600 line-clamp-2">{set.description}</p>
-                  ) : null}
-                </div>
-                <button
-                  type="button"
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-semibold text-neutral-900">{set.title || '(untitled set)'}</h3>
+                    {set.description ? (
+                      <p className="text-xs text-neutral-600 line-clamp-2">{set.description}</p>
+                    ) : null}
+                    <GeneratedFromBadges item={set} className="pt-1" />
+                  </div>
+                  <button
+                    type="button"
                   onClick={() => removeSet(set._id)}
                   className="btn-ghost text-xs text-red-600"
                 >

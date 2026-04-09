@@ -12,6 +12,10 @@ const questionSchema = new mongoose.Schema(
 const quizSchema = new mongoose.Schema(
   {
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    sourceMaterial: { type: mongoose.Schema.Types.ObjectId, ref: 'LearningMaterial', default: null },
+    sourceMaterialName: { type: String, trim: true, default: '' },
+    sourceClassName: { type: String, trim: true, default: '' },
+    sourceClassColor: { type: String, trim: true, default: '' },
     title: { type: String, trim: true, default: '' },
     description: { type: String, trim: true, default: '' },
     questions: { type: [questionSchema], default: [] },
@@ -20,6 +24,7 @@ const quizSchema = new mongoose.Schema(
 );
 
 quizSchema.index({ owner: 1, title: 1 });
+quizSchema.index({ sourceMaterial: 1 });
 
 const Quiz = mongoose.model('Quiz', quizSchema);
 export default Quiz;

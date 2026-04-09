@@ -170,6 +170,10 @@ router.post('/:id/analyze', requireAuth, async (req, res) => {
         set = await FlashcardSet.findById(material.flashcardSet);
         if (set) {
           set.cards = cards;
+          set.sourceMaterial = material._id;
+          set.sourceMaterialName = material.originalName || '';
+          set.sourceClassName = material.className || '';
+          set.sourceClassColor = material.classColor || '';
           set.title = set.title || title;
           set.description = set.description || description;
           await set.save();
@@ -179,6 +183,10 @@ router.post('/:id/analyze', requireAuth, async (req, res) => {
       if (!set) {
         set = await FlashcardSet.create({
           owner: req.user._id,
+          sourceMaterial: material._id,
+          sourceMaterialName: material.originalName || '',
+          sourceClassName: material.className || '',
+          sourceClassColor: material.classColor || '',
           title,
           description,
           cards,
@@ -204,12 +212,20 @@ router.post('/:id/analyze', requireAuth, async (req, res) => {
       let quiz = material.quiz ? await Quiz.findById(material.quiz) : null;
       if (quiz) {
         quiz.questions = questions;
+        quiz.sourceMaterial = material._id;
+        quiz.sourceMaterialName = material.originalName || '';
+        quiz.sourceClassName = material.className || '';
+        quiz.sourceClassColor = material.classColor || '';
         quiz.title = quiz.title || title;
         quiz.description = quiz.description || description;
         await quiz.save();
       } else {
         quiz = await Quiz.create({
           owner: req.user._id,
+          sourceMaterial: material._id,
+          sourceMaterialName: material.originalName || '',
+          sourceClassName: material.className || '',
+          sourceClassColor: material.classColor || '',
           title,
           description,
           questions,
@@ -249,6 +265,17 @@ router.delete('/:id', requireAuth, async (req, res) => {
       console.warn('Failed to delete uploaded file', error);
     }
   }
+
+  await Promise.all([
+    FlashcardSet.updateMany(
+      { sourceMaterial: material._id },
+      { $set: { sourceMaterial: null } },
+    ),
+    Quiz.updateMany(
+      { sourceMaterial: material._id },
+      { $set: { sourceMaterial: null } },
+    ),
+  ]);
 
   await LearningMaterial.deleteOne({ _id: material._id });
   res.json({ message: 'Material deleted.' });
