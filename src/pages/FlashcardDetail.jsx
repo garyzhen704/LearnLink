@@ -30,6 +30,18 @@ export default function FlashcardDetailPage() {
   const [speechGradeError, setSpeechGradeError] = useState('');
   const mismatchTimeoutRef = useRef(null);
 
+  // Typing game state
+  const [typingGameStarted, setTypingGameStarted] = useState(false);
+  const [typingGameMode, setTypingGameMode] = useState('term-to-definition'); // 'term-to-definition' | 'definition-to-term'
+  const [typingGameIndex, setTypingGameIndex] = useState(0);
+  const [typingGameCards, setTypingGameCards] = useState([]);
+  const [typingAnswer, setTypingAnswer] = useState('');
+  const [typingSubmitted, setTypingSubmitted] = useState(false);
+  const [isGradingTyping, setIsGradingTyping] = useState(false);
+  const [typingGrade, setTypingGrade] = useState(null);
+  const [typingGradeError, setTypingGradeError] = useState('');
+  const typingInputRef = useRef(null);
+
   const clearMismatchFeedback = useCallback(() => {
     if (mismatchTimeoutRef.current) {
       window.clearTimeout(mismatchTimeoutRef.current);
@@ -151,6 +163,8 @@ export default function FlashcardDetailPage() {
       if (event.key === 'ArrowLeft') goPrev();
       if (event.key === 'ArrowRight') goNext();
       if (event.key === ' ') {
+        // Don't flip if the user is typing in type game
+        if (document.activeElement === typingInputRef.current) return;
         event.preventDefault();
         handleFlipToggle();
       }
@@ -291,6 +305,76 @@ export default function FlashcardDetailPage() {
     }
     startRecording();
   }, [isRecording, startRecording, stopRecording]);
+
+  // Typing game helpers
+  const validTypingCards = useMemo(
+    () => cards.filter((c) => c.term?.trim() && c.definition?.trim()),
+    [cards],
+  );
+
+  const startTypingGame = useCallback((mode) => {
+    const shuffled = shuffleArray(validTypingCards);
+    setTypingGameCards(shuffled);
+    setTypingGameMode(mode);
+    setTypingGameIndex(0);
+    setTypingAnswer('');
+    setTypingSubmitted(false);
+    setTypingGrade(null);
+    setTypingGradeError('');
+    setTypingGameStarted(true);
+    setTimeout(() => typingInputRef.current?.focus(), 50);
+  }, [validTypingCards]);
+
+  const currentTypingCard = typingGameStarted ? typingGameCards[typingGameIndex] ?? null : null;
+  const typingGameDone = typingGameStarted && typingGameIndex >= typingGameCards.length;
+
+  const submitTypingAnswer = useCallback(async () => {
+    if (!currentTypingCard || !typingAnswer.trim() || isGradingTyping) return;
+    const isTermToDefinition = typingGameMode === 'term-to-definition';
+    const prompt = isTermToDefinition ? currentTypingCard.term : currentTypingCard.definition;
+    const expected = isTermToDefinition ? currentTypingCard.definition : currentTypingCard.term;
+
+    setIsGradingTyping(true);
+    setTypingGradeError('');
+    setTypingSubmitted(true);
+
+    try {
+      const response = await http('/ai/grade-flashcard', {
+        method: 'POST',
+        body: JSON.stringify({
+          term: prompt,
+          expectedDefinition: expected,
+          transcript: typingAnswer.trim(),
+        }),
+      });
+      setTypingGrade({
+        correct: Boolean(response?.correct),
+        score: Number(response?.score) || 0,
+        reason: String(response?.reason || '').trim(),
+      });
+    } catch (err) {
+      setTypingGradeError(err.message || 'Failed to grade answer.');
+      setTypingGrade(null);
+    } finally {
+      setIsGradingTyping(false);
+    }
+  }, [currentTypingCard, typingAnswer, typingGameMode, isGradingTyping]);
+
+  const nextTypingCard = useCallback(() => {
+    setTypingGameIndex((prev) => prev + 1);
+    setTypingAnswer('');
+    setTypingSubmitted(false);
+    setTypingGrade(null);
+    setTypingGradeError('');
+    setTimeout(() => typingInputRef.current?.focus(), 50);
+  }, []);
+
+  const handleTypingKeyDown = useCallback((e) => {
+    if (e.key === 'Enter' && !e.shiftKey && !typingSubmitted) {
+      e.preventDefault();
+      submitTypingAnswer();
+    }
+  }, [typingSubmitted, submitTypingAnswer]);
 
   if (loading) {
     return (
@@ -526,8 +610,229 @@ export default function FlashcardDetailPage() {
               </div>
             ) : null}
           </div>
-        </div>
 
+          {/* Typing Game */}
+          <div className="card p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-base font-semibold text-neutral-900">Typing game</p>
+                <p className="text-sm text-neutral-500">
+                  Type the answer from memory. Gemini will grade your accuracy.
+                </p>
+              </div>
+              {!typingGameStarted ? (
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <button
+                    type="button"
+                    className="btn-outline"
+                    onClick={() => startTypingGame('term-to-definition')}
+                    disabled={!validTypingCards.length}
+                  >
+                    Term → Definition
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-outline"
+                    onClick={() => startTypingGame('definition-to-term')}
+                    disabled={!validTypingCards.length}
+                  >
+                    Definition → Term
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    onClick={() => startTypingGame(typingGameMode)}
+                  >
+                    Restart
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-outline"
+                    onClick={() => { setTypingGameStarted(false); setTypingGrade(null); setTypingGradeError(''); document.activeElement?.blur(); }}
+                  >
+                    Exit
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {!validTypingCards.length && (
+              <p className="mt-4 text-sm text-neutral-500">
+                Add terms and definitions to this set to unlock the typing game.
+              </p>
+            )}
+
+            {typingGameStarted && validTypingCards.length > 0 && (
+              <div className="mt-4 space-y-4">
+                {/* Progress bar */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-2 rounded-full bg-neutral-100 overflow-hidden">
+                    <div
+                      className="h-2 rounded-full bg-neutral-900 transition-all duration-300"
+                      style={{ width: `${(typingGameIndex / typingGameCards.length) * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-xs text-neutral-500 whitespace-nowrap">
+                    {Math.min(typingGameIndex + 1, typingGameCards.length)} / {typingGameCards.length}
+                  </span>
+                </div>
+
+                {typingGameDone ? (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-6 text-center">
+                    <p className="text-lg font-semibold text-emerald-800">All cards complete! 🎉</p>
+                    <p className="mt-1 text-sm text-emerald-700">Great work going through the full set.</p>
+                    <div className="mt-4 flex justify-center gap-2">
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        onClick={() => startTypingGame(typingGameMode)}
+                      >
+                        Play again
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-outline"
+                        onClick={() => startTypingGame(typingGameMode === 'term-to-definition' ? 'definition-to-term' : 'term-to-definition')}
+                      >
+                        Switch mode
+                      </button>
+                    </div>
+                  </div>
+                ) : currentTypingCard ? (
+                  <div className="space-y-3">
+                    {/* Prompt */}
+                    <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-5 py-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400 mb-1">
+                        {typingGameMode === 'term-to-definition' ? 'Term' : 'Definition'}
+                      </p>
+                      <p className="text-base font-medium text-neutral-900 leading-snug">
+                        {typingGameMode === 'term-to-definition'
+                          ? currentTypingCard.term
+                          : currentTypingCard.definition}
+                      </p>
+                    </div>
+
+                    {/* Answer input */}
+                    <div>
+                      <label className="text-xs font-semibold uppercase tracking-wide text-neutral-400 block mb-1">
+                        Your answer ({typingGameMode === 'term-to-definition' ? 'definition' : 'term'})
+                      </label>
+                      <textarea
+                        ref={typingInputRef}
+                        className="input resize-none min-h-[80px]"
+                        placeholder={`Type the ${typingGameMode === 'term-to-definition' ? 'definition' : 'term'} here…`}
+                        value={typingAnswer}
+                        onChange={(e) => setTypingAnswer(e.target.value)}
+                        onKeyDown={handleTypingKeyDown}
+                        disabled={typingSubmitted}
+                        rows={3}
+                      />
+                      <p className="mt-1 text-xs text-neutral-400">Press Enter to submit.</p>
+                    </div>
+
+                    {/* Submit / Next */}
+                    {!typingSubmitted ? (
+                      <button
+                        type="button"
+                        className="btn-primary w-full sm:w-auto"
+                        onClick={submitTypingAnswer}
+                        disabled={!typingAnswer.trim() || isGradingTyping}
+                      >
+                        {isGradingTyping ? 'Grading…' : 'Submit answer'}
+                      </button>
+                    ) : (
+                      <div className="space-y-3">
+                        {/* Correct answer reveal */}
+                        <div className="rounded-xl border border-neutral-200 bg-white px-5 py-4">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400 mb-1">
+                            Correct answer
+                          </p>
+                          <p className="text-sm text-neutral-800 leading-snug">
+                            {typingGameMode === 'term-to-definition'
+                              ? currentTypingCard.definition
+                              : currentTypingCard.term}
+                          </p>
+                        </div>
+
+                        {/* Grade feedback */}
+                        {isGradingTyping && (
+                          <p className="text-sm text-neutral-500 animate-pulse">Gemini is grading your answer…</p>
+                        )}
+                        {typingGradeError && (
+                          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                            {typingGradeError}
+                          </div>
+                        )}
+                        {typingGrade && !isGradingTyping && (
+                          <div className={`rounded-xl border px-4 py-4 space-y-3 ${
+                            typingGrade.score >= 0.75
+                              ? 'border-emerald-200 bg-emerald-50'
+                              : typingGrade.score >= 0.4
+                              ? 'border-amber-200 bg-amber-50'
+                              : 'border-red-200 bg-red-50'
+                          }`}>
+                            <div className="flex items-center justify-between gap-4">
+                              <div>
+                                <p className={`text-sm font-semibold ${
+                                  typingGrade.score >= 0.75 ? 'text-emerald-800' : typingGrade.score >= 0.4 ? 'text-amber-800' : 'text-red-800'
+                                }`}>
+                                  {typingGrade.score >= 0.75 ? '✓ Correct' : typingGrade.score >= 0.4 ? '~ Partial' : '✗ Incorrect'}
+                                </p>
+                                {typingGrade.reason && (
+                                  <p className={`text-xs mt-0.5 ${
+                                    typingGrade.score >= 0.75 ? 'text-emerald-700' : typingGrade.score >= 0.4 ? 'text-amber-700' : 'text-red-700'
+                                  }`}>
+                                    {typingGrade.reason}
+                                  </p>
+                                )}
+                              </div>
+                              {/* Score circle */}
+                              <div className={`flex-shrink-0 w-14 h-14 rounded-full flex flex-col items-center justify-center border-2 ${
+                                typingGrade.score >= 0.75 ? 'border-emerald-400 bg-emerald-100' : typingGrade.score >= 0.4 ? 'border-amber-400 bg-amber-100' : 'border-red-400 bg-red-100'
+                              }`}>
+                                <span className={`text-lg font-bold leading-none ${
+                                  typingGrade.score >= 0.75 ? 'text-emerald-800' : typingGrade.score >= 0.4 ? 'text-amber-800' : 'text-red-800'
+                                }`}>
+                                  {Math.round(typingGrade.score * 100)}
+                                </span>
+                                <span className={`text-[9px] font-semibold uppercase tracking-wide ${
+                                  typingGrade.score >= 0.75 ? 'text-emerald-600' : typingGrade.score >= 0.4 ? 'text-amber-600' : 'text-red-600'
+                                }`}>
+                                  / 100
+                                </span>
+                              </div>
+                            </div>
+                            {/* Score bar */}
+                            <div className="h-1.5 rounded-full bg-white/60 overflow-hidden">
+                              <div
+                                className={`h-1.5 rounded-full transition-all duration-500 ${
+                                  typingGrade.score >= 0.75 ? 'bg-emerald-500' : typingGrade.score >= 0.4 ? 'bg-amber-500' : 'bg-red-500'
+                                }`}
+                                style={{ width: `${Math.round(typingGrade.score * 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        <button
+                          type="button"
+                          className="btn-primary w-full sm:w-auto"
+                          onClick={nextTypingCard}
+                          disabled={isGradingTyping}
+                        >
+                          {typingGameIndex + 1 >= typingGameCards.length ? 'Finish' : 'Next card →'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            )}
+          </div>
+        </div>
         <aside className="space-y-3">
           {cards.length ? (
             <div className="card max-h-[320px] overflow-y-auto p-3 text-sm">
