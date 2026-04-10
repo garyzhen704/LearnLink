@@ -6,6 +6,7 @@ import {
   useState,
 } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import GeneratedFromBadges from '../components/GeneratedFromBadges.jsx';
 import Page from '../components/Page.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
 import LoadingSpinner from '../components/LoadingSpinner.jsx';
@@ -406,6 +407,7 @@ export default function FlashcardDetailPage() {
         </div>
       }
     >
+      <GeneratedFromBadges item={setData} className="mb-4" />
       <div className="grid gap-6 lg:grid-cols-[1fr,320px]">
         <div className="space-y-4">
           <div
