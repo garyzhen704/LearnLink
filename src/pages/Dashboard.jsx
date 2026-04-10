@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import GeneratedFromBadges from '../components/GeneratedFromBadges.jsx';
 import Page from '../components/Page.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
 import LoadingSpinner from '../components/LoadingSpinner.jsx';
@@ -187,6 +188,7 @@ export default function DashboardPage() {
                     {set.description ? (
                       <p className="text-xs text-neutral-600 line-clamp-2">{set.description}</p>
                     ) : null}
+                    <GeneratedFromBadges item={set} className="pt-1" />
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="tag">{set.cardsCount ?? set.cards?.length ?? 0} cards</span>
@@ -222,6 +224,7 @@ export default function DashboardPage() {
                   {quiz.description ? (
                     <p className="text-xs text-neutral-600 line-clamp-3">{quiz.description}</p>
                   ) : null}
+                  <GeneratedFromBadges item={quiz} className="pt-1" />
                 </div>
                 <div className="mt-4 flex gap-2 text-sm">
                   <Link to={`/quizzes/${quiz._id}/play`} className="btn-outline flex-1 text-center">

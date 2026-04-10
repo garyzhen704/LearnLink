@@ -11,6 +11,10 @@ const flashcardSchema = new mongoose.Schema(
 const flashcardSetSchema = new mongoose.Schema(
   {
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    sourceMaterial: { type: mongoose.Schema.Types.ObjectId, ref: 'LearningMaterial', default: null },
+    sourceMaterialName: { type: String, trim: true, default: '' },
+    sourceClassName: { type: String, trim: true, default: '' },
+    sourceClassColor: { type: String, trim: true, default: '' },
     title: { type: String, trim: true, default: '' },
     description: { type: String, trim: true, default: '' },
     cards: { type: [flashcardSchema], default: [] },
@@ -19,6 +23,7 @@ const flashcardSetSchema = new mongoose.Schema(
 );
 
 flashcardSetSchema.index({ owner: 1, title: 1 });
+flashcardSetSchema.index({ sourceMaterial: 1 });
 flashcardSetSchema.index({ title: 'text', description: 'text' });
 
 const FlashcardSet = mongoose.model('FlashcardSet', flashcardSetSchema);
