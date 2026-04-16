@@ -18,6 +18,7 @@ export default function useSpeechToText({ onTranscript, language = 'en' } = {}) 
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState('');
+  const [mediaStream, setMediaStream] = useState(null);
 
   useEffect(() => {
     onTranscriptRef.current = onTranscript;
@@ -33,6 +34,7 @@ export default function useSpeechToText({ onTranscript, language = 'en' } = {}) 
     if (!streamRef.current) return;
     streamRef.current.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
+    setMediaStream(null);
   }, []);
 
   const clearResult = useCallback(() => {
@@ -54,6 +56,7 @@ export default function useSpeechToText({ onTranscript, language = 'en' } = {}) 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
+      setMediaStream(stream);
       chunksRef.current = [];
 
       const supportedType = PREFERRED_MIME_TYPES.find((type) => (
@@ -164,6 +167,7 @@ export default function useSpeechToText({ onTranscript, language = 'en' } = {}) 
     isTranscribing,
     transcript,
     error,
+    mediaStream,
     startRecording,
     stopRecording,
     clearResult,

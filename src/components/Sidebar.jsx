@@ -11,13 +11,26 @@ import {
   ChevronIcon,
   LinkIcon,
 } from './Icons.jsx'
+import {
+  House,
+  Layers,
+  LibraryBig,
+  WandSparkles,
+  ClipboardList,
+  LogOut,
+  ArrowRightFromLine,
+  ArrowLeftFromLine,
+} from 'lucide-react'
+import { Button } from '../base-ui-components/Button.jsx'
+import { Icon } from '../base-ui-components/Icon.jsx'
+import { IconButton } from '../base-ui-components/IconButton.jsx'
 
 const NAV_ITEMS = [
-  { to: '/dashboard', label: 'Dashboard', icon: HomeIcon },
-  { to: '/flashcards', label: 'Flashcards', icon: CardsIcon },
-  { to: '/materials', label: 'Learning Materials', icon: BookIcon },
-  { to: '/ai-flashcards', label: 'AI Flashcards', icon: SparklesIcon },
-  { to: '/quizzes', label: 'Quizzes', icon: ClipboardIcon },
+  { to: '/dashboard', label: 'Dashboard', icon: House },
+  { to: '/flashcards', label: 'Flashcards', icon: Layers },
+  { to: '/materials', label: 'Learning Materials', icon: LibraryBig },
+  { to: '/ai-flashcards', label: 'AI Flashcards', icon: WandSparkles },
+  { to: '/quizzes', label: 'Quizzes', icon: ClipboardList },
 ]
 
 export default function Sidebar({ className = '', isOpen, onToggle }) {
@@ -63,7 +76,7 @@ export default function Sidebar({ className = '', isOpen, onToggle }) {
 // Sidebar Components
 function SidebarHeader({ children }) {
   return (
-    <div className='h-16 flex items-center gap-3 p-3 border-b border-neutral-200'>
+    <div className='h-16 flex justify-between items-center gap-3 p-3 border-b border-neutral-200'>
       {children}
     </div>
   )
@@ -91,14 +104,14 @@ function NavListItem({ item, showLabel }) {
         to={item.to}
         className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
       >
-        <item.icon className='h-5 w-5 shrink-0' />
+        <Icon variant='outline' icon={item.icon} size='md' className={'w-5'} />
         {showLabel && <span className='text-nowrap'>{item.label}</span>}
       </NavLink>
     </li>
   )
 }
 
-// Button Components
+// This component is not needed.
 function LogoButton({ text }) {
   return (
     <div className='flex h-9 px-2 gap-3 shrink-0 items-center justify-center rounded-xl text-sm font-semibold text-neutral-900'>
@@ -110,7 +123,7 @@ function LogoButton({ text }) {
 
 function LogoutButton({ isOpen, username, handleLogout }) {
   return (
-    <>
+    <div className={`${isOpen ? 'w-full' : 'w-9'}`}>
       {isOpen && (
         <div className='text-xs text-neutral-500 text-nowrap pb-2'>
           Signed in as{' '}
@@ -122,24 +135,25 @@ function LogoutButton({ isOpen, username, handleLogout }) {
       <button
         type='button'
         onClick={handleLogout}
-        className='inline-flex w-full items-center gap-3 rounded-lg border border-neutral-300 p-2 text-sm text-neutral-700 transition hover:bg-neutral-50'
+        className='nav-link border border-ds-border bg-transparent'
       >
-        <LogoutIcon className='h-5 w-5 shrink-0' />
+        <Icon icon={LogOut} variant='default' className={'w-5'} />
         {isOpen && <span>Logout</span>}
       </button>
-    </>
+    </div>
   )
 }
 
 function ToggleButton({ isOpen, onToggle }) {
   return (
-    <button
-      type='button'
+    <IconButton
+      icon={ArrowRightFromLine}
+      variant='ghost'
       onClick={onToggle}
-      className='ml-auto w-9 rounded-lg border border-neutral-300 cursor-pointer p-2 items-center justify-items-center transition text-neutral-700 hover:bg-neutral-50'
-      aria-label={isOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-    >
-      <ChevronIcon className='h-5 w-5' isOpen={isOpen} />
-    </button>
+      style={{
+        transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+        transition: 'transform 0.2s',
+      }}
+    />
   )
 }

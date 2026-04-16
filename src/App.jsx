@@ -6,6 +6,8 @@ import DashboardPage from './pages/Dashboard.jsx';
 import FlashcardsPage from './pages/Flashcards.jsx';
 import FlashcardBuilderPage from './pages/FlashcardBuilder.jsx';
 import FlashcardDetailPage from './pages/FlashcardDetail.jsx';
+import FlashcardMatchPage from './pages/FlashcardMatch.jsx';
+import FlashcardTypingPage from './pages/FlashcardTyping.jsx';
 import AiFlashcardsPage from './pages/AiFlashcards.jsx';
 import QuizBuilderPage from './pages/QuizBuilder.jsx';
 import QuizPlayerPage from './pages/QuizPlayer.jsx';
@@ -26,6 +28,8 @@ function App() {
             <Route path="/flashcards" element={<FlashcardsPage />} />
             <Route path="/flashcards/new" element={<FlashcardBuilderPage />} />
             <Route path="/flashcards/:id" element={<FlashcardDetailPage />} />
+            <Route path="/flashcards/:id/match" element={<FlashcardMatchPage />} />
+            <Route path="/flashcards/:id/typing" element={<FlashcardTypingPage />} />
 
             <Route path="/ai-flashcards" element={<AiFlashcardsPage />} />
 

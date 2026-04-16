@@ -2,6 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --ds-primary: #0d2450;
+  --color-text-dark: #0D0D0E;
+  --ds-primary-hover: #162033;
+  --ds-primary-pressed: #121a29;
+  --ds-primary-fg: #ffffff;
+  --ds-danger: #c50707;
+  --ds-danger-hover: #940505;
+  --ds-danger-pressed: #620404;
+  --ds-danger-fg: #ffffff;
+  --ds-disabled: #e6e8eb;
+  --ds-disabled-fg: #949ba1;
+  --ds-foreground: #0d0d0e;
+  --ds-foreground-muted: #6c757d;
+  --ds-background: #ffffff;
+  --ds-border: #cfd6db;
+  --ds-border-hover: #b3b9bf;
+  --ds-border-focus: #0d2450;
+  --ds-input-border: #b3b9bf;
+  --ds-neutral: #e6e8eb;
+  --ds-toggle-off: #b3b9bf;
+  --ds-toggle-on: #0d2450;
+  --ds-indicator: #ffffff;
+  --ds-radius-md: 6px;
+  --ds-radius-xl: 12px;
+}
+
 @layer base {
   body {
     @apply bg-neutral-50 text-neutral-900 antialiased;
@@ -10,7 +37,7 @@
 
 @layer components {
   .card {
-    @apply rounded-2xl border border-neutral-200 bg-white shadow-card;
+    @apply rounded-xl border border-ds-border bg-white transition-shadow hover:shadow-card;
   }
   .flashcard-container {
     @apply relative w-full;
@@ -68,10 +95,10 @@
     @apply inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-600;
   }
   .nav-link {
-    @apply flex h-9 w-full items-center gap-3 rounded-lg p-2 text-sm transition text-neutral-600 hover:bg-neutral-100;
+    @apply flex h-9 w-full items-center gap-3 rounded-ds-md p-2 text-sm transition text-ds-foreground hover:bg-ds-neutral/40 active:bg-ds-neutral/60 ;
   }
   .nav-link.active {
-    @apply bg-neutral-900 text-white shadow-sm
+    @apply bg-ds-primary text-white hover:bg-ds-primary-hover
   }
   .sidebar {
     @apply fixed left-0 top-0 z-40 flex h-screen flex-col overflow-hidden border-r border-neutral-200 bg-white transition-[width] duration-300
