@@ -218,7 +218,6 @@ export default function DashboardPage() {
                       navigate(`/flashcards/new?clone=${set._id}`)
                     },
                   },
-                  // { type: 'separator' },
                   {
                     label: 'Delete',
                     onSelect: (event) => {
@@ -236,34 +235,7 @@ export default function DashboardPage() {
             title='Recent quizzes'
             emptyLabel='No quizzes yet. Plan your next assessment.'
             items={quizzes}
-            renderItem={(quiz) => (
-              <article key={quiz._id} className='card p-4'>
-                <div className='space-y-1'>
-                  <h3 className='text-sm font-semibold text-neutral-900'>
-                    {quiz.title || '(untitled quiz)'}
-                  </h3>
-                  {quiz.description ? (
-                    <p className='text-xs text-neutral-600 line-clamp-3'>
-                      {quiz.description}
-                    </p>
-                  ) : null}
-                </div>
-                <div className='mt-4 flex gap-2 text-sm'>
-                  <Link
-                    to={`/quizzes/${quiz._id}/play`}
-                    className='btn-outline flex-1 text-center'
-                  >
-                    Take quiz
-                  </Link>
-                  <a
-                    className='btn-ghost flex-1 text-center'
-                    href={`/takeQuiz.html?id=${quiz._id}`}
-                  >
-                    Classic view
-                  </a>
-                </div>
-              </article>
-            )}
+            renderItem={(quiz) => <Card key={quiz._id} set={quiz} />}
           />
         </div>
       )}

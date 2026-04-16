@@ -16,8 +16,10 @@ export function Card({ set, menuItems }) {
 
   const handleClick = (event) => {
     event.preventDefault()
-    console.log('CLICK RUN', event)
-    navigate(`/flashcards/${set._id}`)
+    const dest = set.questions
+      ? `/quizzes/${set._id}/play`
+      : `/flashcards/${set._id}`
+    navigate(dest)
   }
 
   return (
@@ -38,21 +40,23 @@ export function Card({ set, menuItems }) {
           ) : null}
         </div>
         <div className='flex'>
-          <Menu
-            align='end'
-            trigger={
-              <IconButton
-                icon={Ellipsis}
-                variant='ghost'
-                size='md'
-                onClick={(event) => event.stopPropagation()}
-              />
-            }
-            items={menuItems}
-            onOpenChange={(pressed, eventDetails) => {
-              console.log(eventDetails, pressed)
-            }}
-          />
+          {menuItems && (
+            <Menu
+              align='end'
+              trigger={
+                <IconButton
+                  icon={Ellipsis}
+                  variant='ghost'
+                  size='md'
+                  onClick={(event) => event.stopPropagation()}
+                />
+              }
+              items={menuItems}
+              onOpenChange={(pressed, eventDetails) => {
+                console.log(eventDetails, pressed)
+              }}
+            />
+          )}
         </div>
       </div>
 
@@ -63,7 +67,8 @@ export function Card({ set, menuItems }) {
         </span>
         {'·'}
         <span className=''>
-          {set.cardsCount ?? set.cards?.length ?? 0} cards
+          {set.cardsCount ?? set.cards?.length ?? set.questions?.length ?? 0}{' '}
+          {set.questions ? 'questions' : 'cards'}
         </span>
         {'·'}
         <span>{formatRelativeDate(set.updatedAt || set.createdAt)}</span>
