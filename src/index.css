@@ -67,6 +67,9 @@
   .flashcard-text {
     @apply w-full break-words text-3xl font-semibold leading-tight text-neutral-900 sm:text-4xl;
   }
+  .flashcard-definition-text {
+    @apply w-full break-words text-lg text-neutral-900;
+  }
   .flashcard-text-empty {
     @apply text-lg text-neutral-500;
   }
