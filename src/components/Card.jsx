@@ -3,6 +3,7 @@ import { Menu } from '../base-ui-components/Menu'
 import { Button, IconButton } from '../base-ui-components'
 import { Link, useNavigate } from 'react-router-dom'
 import { formatRelativeDate } from '../lib/utils'
+import GeneratedFromBadges from './GeneratedFromBadges.jsx'
 
 // temporary prop type definitions:
 // menuItems = [menuItem];
@@ -38,6 +39,7 @@ export function Card({ set, menuItems }) {
               {set.description}
             </p>
           ) : null}
+          <GeneratedFromBadges item={set} className='pt-1' />
         </div>
         <div className='flex'>
           {menuItems && (

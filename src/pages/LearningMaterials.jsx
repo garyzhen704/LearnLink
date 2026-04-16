@@ -8,6 +8,7 @@ import { API_BASE, authHeaders, http } from '../lib/api.js'
 import { useClassManagement } from '../hooks/useClassManagement.js'
 import { FileUploadInput } from '../components/FileUploadInput.jsx'
 import { useRagPersistence } from '../hooks/useRagPersistence.js'
+import useSpeechToText from '../hooks/useSpeechToText.js'
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
@@ -69,10 +70,41 @@ export default function LearningMaterialsPage() {
 
   const [collapsedClasses, setCollapsedClasses] = useState(new Set())
   const selectedIdRef = useRef('')
+  const speechMaterialIdRef = useRef('')
 
   useEffect(() => {
     selectedIdRef.current = selectedId
   }, [selectedId])
+
+  const handleRagSpeechTranscript = async (spokenTranscript) => {
+    const targetMaterialId = speechMaterialIdRef.current || selectedIdRef.current
+    const nextQuestion = String(spokenTranscript || '').trim()
+
+    if (!targetMaterialId || !nextQuestion) return
+
+    setQuestionDraft(targetMaterialId, nextQuestion)
+
+    if (selectedIdRef.current === targetMaterialId) {
+      setRagState((prev) => ({
+        ...prev,
+        question: nextQuestion,
+        error: '',
+      }))
+    }
+  }
+
+  const {
+    isSupported: speechSupported,
+    isRecording,
+    isTranscribing,
+    error: speechError,
+    startRecording,
+    stopRecording,
+    clearResult: clearSpeechResult,
+  } = useSpeechToText({
+    onTranscript: handleRagSpeechTranscript,
+    language: 'en',
+  })
 
   useEffect(() => {
     let alive = true
@@ -136,6 +168,16 @@ export default function LearningMaterialsPage() {
       sources: materialRagState.sources,
     })
   }, [selectedId, getMaterialRagState])
+
+  useEffect(() => {
+    clearSpeechResult()
+  }, [selectedId, clearSpeechResult])
+
+  useEffect(() => {
+    if (!isRecording && !isTranscribing) {
+      speechMaterialIdRef.current = ''
+    }
+  }, [isRecording, isTranscribing])
 
   const handleUpload = async (event) => {
     event.preventDefault()
@@ -320,7 +362,7 @@ export default function LearningMaterialsPage() {
 
   const handleAskRag = async (event) => {
     event.preventDefault()
-    if (!selectedId || ragState.loading) return
+    if (!selectedId || ragState.loading || isRecording || isTranscribing) return
     const askedMaterialId = selectedId
     const question = ragState.question.trim()
     if (!question) {
@@ -378,6 +420,7 @@ export default function LearningMaterialsPage() {
 
   const handleClearRagState = () => {
     removeRagState(selectedId)
+    clearSpeechResult()
     setRagState({
       question: '',
       loading: false,
@@ -387,12 +430,27 @@ export default function LearningMaterialsPage() {
     })
   }
 
+  const handleSpeechButtonClick = async () => {
+    if (isRecording) {
+      stopRecording()
+      return
+    }
+
+    if (!selectedId || ragState.loading || isTranscribing) return
+
+    speechMaterialIdRef.current = selectedId
+    clearSpeechResult()
+    await startRecording()
+  }
+
   const viewerSource = useMemo(() => {
     if (!selected?.fileUrl) return ''
     return `${API_BASE}${selected.fileUrl}`
   }, [selected])
 
   const analyzing = Boolean(analysisState.loading)
+  const speechBusy = isRecording || isTranscribing
+  const ragBusy = ragState.loading || speechBusy
 
   const materialsByClass = useMemo(() => {
     const grouped = {}
@@ -794,7 +852,21 @@ export default function LearningMaterialsPage() {
                 <div className='rounded-lg border border-neutral-200 bg-white p-4'>
                   <form className='space-y-3' onSubmit={handleAskRag}>
                     <label className='block text-xs font-medium text-neutral-600'>
-                      Question
+                      <span className='flex flex-wrap items-center justify-between gap-2'>
+                        <span>Question</span>
+                        <button
+                          type='button'
+                          className={`text-sm ${isRecording ? 'btn-primary' : 'btn-outline'}`}
+                          onClick={handleSpeechButtonClick}
+                          disabled={!selectedId || !speechSupported || ragState.loading || isTranscribing}
+                        >
+                          {isTranscribing
+                            ? 'Transcribing...'
+                            : isRecording
+                              ? 'Stop and transcribe'
+                              : 'Start mic'}
+                        </button>
+                      </span>
                       <textarea
                         className='mt-2 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm'
                         rows={3}
@@ -817,7 +889,7 @@ export default function LearningMaterialsPage() {
                       <button
                         type='submit'
                         className='btn-primary text-sm'
-                        disabled={ragState.loading}
+                        disabled={ragBusy}
                       >
                         {ragState.loading ? 'Asking...' : 'Ask'}
                       </button>
@@ -825,7 +897,7 @@ export default function LearningMaterialsPage() {
                         type='button'
                         className='btn-outline text-sm'
                         onClick={handleClearRagState}
-                        disabled={ragState.loading}
+                        disabled={ragBusy}
                       >
                         Clear
                       </button>
@@ -848,8 +920,34 @@ export default function LearningMaterialsPage() {
                     </div>
                   </form>
 
+                  {!speechSupported ? (
+                    <StatusMessage tone='warning' className='mt-3'>
+                      This browser does not support microphone recording.
+                    </StatusMessage>
+                  ) : null}
+
+                  {isRecording ? (
+                    <p className='mt-3 text-xs text-neutral-500'>
+                      Recording... stop when you finish speaking your question.
+                    </p>
+                  ) : null}
+
+                  {isTranscribing ? (
+                    <p className='mt-3 text-xs text-neutral-500'>
+                      Transcribing audio...
+                    </p>
+                  ) : null}
+
+                  {speechError ? (
+                    <StatusMessage tone='error' className='mt-3'>
+                      {speechError}
+                    </StatusMessage>
+                  ) : null}
+
                   {ragState.error ? (
-                    <p className='mt-3 text-xs text-red-600'>{ragState.error}</p>
+                    <StatusMessage tone='error' className='mt-3'>
+                      {ragState.error}
+                    </StatusMessage>
                   ) : null}
 
                   {ragState.answer ? (

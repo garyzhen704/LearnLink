@@ -8,6 +8,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
   ArrowRight,
+  Keyboard,
   Layers,
   Mic,
   MicOff,
@@ -20,6 +21,7 @@ import Page from '../components/Page.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
 import LoadingSpinner from '../components/LoadingSpinner.jsx';
 import VoicePanel from '../components/VoicePanel.jsx';
+import GeneratedFromBadges from '../components/GeneratedFromBadges.jsx';
 import { Button, IconButton } from '../base-ui-components';
 import { http } from '../lib/api.js';
 import useVoiceAnswer from '../hooks/useVoiceAnswer.js';
@@ -168,6 +170,7 @@ export default function FlashcardDetailPage() {
               <span>{cardCountLabel}</span>
               <span>Last studied 2h ago</span>
             </div>
+            <GeneratedFromBadges item={setData} className="pt-1" />
           </div>
           <div className="flex gap-2">
             <Link to={`/flashcards/new?edit=${setData?._id}`} className="inline-flex">
@@ -294,6 +297,15 @@ export default function FlashcardDetailPage() {
                 className="w-full justify-center"
               >
                 Match cards
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/flashcards/${id}/typing`)}
+                disabled={!total}
+                iconLeading={<Keyboard size={16} />}
+                className="w-full justify-center"
+              >
+                Typing practice
               </Button>
               <button
                 type="button"

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import GeneratedFromBadges from '../components/GeneratedFromBadges.jsx';
 import Page from '../components/Page.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
 import { http } from '../lib/api.js';
@@ -245,6 +246,7 @@ export default function QuizBuilderPage() {
                     {quiz.description ? (
                       <p className="text-xs text-neutral-600 line-clamp-2">{quiz.description}</p>
                     ) : null}
+                    <GeneratedFromBadges item={quiz} className="pt-1" />
                   </div>
                   <button type="button" className="btn-ghost text-xs text-red-600" onClick={() => deleteQuiz(quiz._id)}>
                     Delete

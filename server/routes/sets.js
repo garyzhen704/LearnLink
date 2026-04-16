@@ -1,6 +1,7 @@
 import express from 'express';
 import FlashcardSet from '../models/FlashcardSet.js';
 import { requireAuth } from '../middleware/auth.js';
+import { attachStudySourceMetadata } from '../utils/studySourceMetadata.js';
 
 const router = express.Router();
 
@@ -22,13 +23,18 @@ router.get('/', async (req, res) => {
     const sets = await FlashcardSet.find(filters)
       .sort({ updatedAt: -1 })
       .limit(Math.min(Number(limit) || 20, 100))
-      .select('title description owner updatedAt createdAt cards');
+      .select('title description owner sourceMaterial sourceMaterialName sourceClassName sourceClassColor updatedAt createdAt cards');
+    const enrichedSets = await attachStudySourceMetadata(sets, 'flashcardSet');
 
-    const response = sets.map((set) => ({
+    const response = enrichedSets.map((set) => ({
       _id: set._id,
       title: set.title,
       description: set.description,
       owner: set.owner,
+      sourceMaterial: set.sourceMaterial,
+      sourceMaterialName: set.sourceMaterialName,
+      sourceClassName: set.sourceClassName,
+      sourceClassColor: set.sourceClassColor,
       createdAt: set.createdAt,
       updatedAt: set.updatedAt,
       cardsCount: set.cards?.length || 0,
@@ -63,7 +69,8 @@ router.get('/:id', async (req, res) => {
     if (!set.owner.equals(req.user._id) && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Unauthorized.' });
     }
-    res.json(includeCards ? set : set.toObject());
+    const enrichedSet = await attachStudySourceMetadata(set, 'flashcardSet');
+    res.json(enrichedSet);
   } catch (error) {
     console.error('Get set error', error);
     res.status(500).json({ message: 'Failed to fetch set.' });

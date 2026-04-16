@@ -1,6 +1,7 @@
 import express from 'express';
 import Quiz from '../models/Quiz.js';
 import { requireAuth } from '../middleware/auth.js';
+import { attachStudySourceMetadata } from '../utils/studySourceMetadata.js';
 
 const router = express.Router();
 
@@ -17,7 +18,8 @@ router.get('/', async (req, res) => {
     const quizzes = await Quiz.find(filters)
       .sort({ updatedAt: -1 })
       .limit(Math.min(Number(limit) || 20, 100));
-    res.json(quizzes);
+    const enrichedQuizzes = await attachStudySourceMetadata(quizzes, 'quiz');
+    res.json(enrichedQuizzes);
   } catch (error) {
     console.error('List quizzes error', error);
     res.status(500).json({ message: 'Failed to fetch quizzes.' });
@@ -48,7 +50,8 @@ router.get('/:id', async (req, res) => {
     if (!quiz.owner.equals(req.user._id) && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Unauthorized.' });
     }
-    res.json(quiz);
+    const enrichedQuiz = await attachStudySourceMetadata(quiz, 'quiz');
+    res.json(enrichedQuiz);
   } catch (error) {
     console.error('Get quiz error', error);
     res.status(500).json({ message: 'Failed to fetch quiz.' });

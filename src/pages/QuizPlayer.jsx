@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import GeneratedFromBadges from '../components/GeneratedFromBadges.jsx';
 import Page from '../components/Page.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
 import LoadingSpinner from '../components/LoadingSpinner.jsx';
@@ -83,6 +84,7 @@ export default function QuizPlayerPage() {
       subtitle={quiz.description || `${quiz.questions?.length || 0} questions`}
       actions={<Link to="/quizzes" className="btn-outline">Back to quizzes</Link>}
     >
+      <GeneratedFromBadges item={quiz} className="mb-4" />
       <form onSubmit={handleSubmit} className="space-y-4">
         {quiz.questions?.map((question, index) => (
           <article key={question._id || index} className="card space-y-3 p-5">
