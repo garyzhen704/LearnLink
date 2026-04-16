@@ -2,41 +2,37 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Layers,
+  Mic,
+  MicOff,
+  Pencil,
+  Shuffle,
+  Star,
+  Upload,
+} from 'lucide-react';
 import Page from '../components/Page.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
 import LoadingSpinner from '../components/LoadingSpinner.jsx';
+import VoicePanel from '../components/VoicePanel.jsx';
+import { Button, IconButton } from '../base-ui-components';
 import { http } from '../lib/api.js';
-import useSpeechToText from '../hooks/useSpeechToText.js';
+import useVoiceAnswer from '../hooks/useVoiceAnswer.js';
 
 export default function FlashcardDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [setData, setSetData] = useState(null);
   const [cards, setCards] = useState([]);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [matchingTerms, setMatchingTerms] = useState([]);
-  const [matchingDefinitions, setMatchingDefinitions] = useState([]);
-  const [matchingSelections, setMatchingSelections] = useState({ term: null, definition: null });
-  const [matchingIncorrect, setMatchingIncorrect] = useState(null);
-  const [matchingStarted, setMatchingStarted] = useState(false);
-  const [isGradingSpeech, setIsGradingSpeech] = useState(false);
-  const [speechGrade, setSpeechGrade] = useState(null);
-  const [speechGradeError, setSpeechGradeError] = useState('');
-  const mismatchTimeoutRef = useRef(null);
-
-  const clearMismatchFeedback = useCallback(() => {
-    if (mismatchTimeoutRef.current) {
-      window.clearTimeout(mismatchTimeoutRef.current);
-      mismatchTimeoutRef.current = null;
-    }
-    setMatchingIncorrect(null);
-  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -70,57 +66,8 @@ export default function FlashcardDetailPage() {
 
   const total = cards.length;
   const current = total ? cards[index] : null;
-  const handleSpokenTranscript = useCallback(
-    async (spokenTranscript) => {
-      if (!current?.definition?.trim()) {
-        setSpeechGrade(null);
-        return;
-      }
 
-      setIsGradingSpeech(true);
-      setSpeechGradeError('');
-
-      try {
-        const response = await http('/ai/grade-flashcard', {
-          method: 'POST',
-          body: JSON.stringify({
-            term: current.term || '',
-            expectedDefinition: current.definition,
-            transcript: spokenTranscript,
-          }),
-        });
-
-        setSpeechGrade({
-          correct: Boolean(response?.correct),
-          score: Number(response?.score) || 0,
-          reason: String(response?.reason || '').trim(),
-        });
-      } catch (err) {
-        setSpeechGradeError(err.message || 'Failed to grade spoken answer.');
-        setSpeechGrade(null);
-      } finally {
-        setIsGradingSpeech(false);
-      }
-    },
-    [current],
-  );
-
-  const {
-    isSupported: speechSupported,
-    isRecording,
-    isTranscribing,
-    transcript,
-    error: speechError,
-    startRecording,
-    stopRecording,
-    clearResult: clearSpeechResult,
-  } = useSpeechToText({ onTranscript: handleSpokenTranscript, language: 'en' });
-  const speechBusy = isRecording || isTranscribing || isGradingSpeech;
-
-  const validMatchingCards = useMemo(
-    () => cards.filter((card) => (card.term?.trim() ?? '') !== '' && (card.definition?.trim() ?? '') !== ''),
-    [cards],
-  );
+  const voice = useVoiceAnswer({ card: current });
 
   const goPrev = useCallback(() => {
     if (!total) return;
@@ -139,12 +86,12 @@ export default function FlashcardDetailPage() {
     setFlipped((state) => !state);
   }, [total]);
 
-  const shuffle = () => {
+  const shuffle = useCallback(() => {
     if (!total) return;
     setCards((prev) => shuffleArray(prev));
     setIndex(0);
     setFlipped(false);
-  };
+  }, [total]);
 
   useEffect(() => {
     const listener = (event) => {
@@ -159,121 +106,6 @@ export default function FlashcardDetailPage() {
     return () => window.removeEventListener('keydown', listener);
   }, [goPrev, goNext, handleFlipToggle]);
 
-  useEffect(() => {
-    setMatchingStarted(false);
-    setMatchingTerms([]);
-    setMatchingDefinitions([]);
-    setMatchingSelections({ term: null, definition: null });
-    clearMismatchFeedback();
-  }, [id, clearMismatchFeedback]);
-
-  useEffect(() => {
-    clearSpeechResult();
-    setSpeechGrade(null);
-    setSpeechGradeError('');
-  }, [id, index, clearSpeechResult]);
-
-  useEffect(
-    () => () => {
-      if (mismatchTimeoutRef.current) {
-        window.clearTimeout(mismatchTimeoutRef.current);
-        mismatchTimeoutRef.current = null;
-      }
-    },
-    [],
-  );
-
-  const startMatchingGame = useCallback(() => {
-    const playableCards = validMatchingCards.map((card) => ({
-      cardId: card.id,
-      term: card.term.trim(),
-      definition: card.definition.trim(),
-    }));
-    const terms = shuffleArray(playableCards).map((card) => ({
-      cardId: card.cardId,
-      text: card.term,
-    }));
-    const definitions = shuffleArray(playableCards).map((card) => ({
-      cardId: card.cardId,
-      text: card.definition,
-    }));
-
-    clearMismatchFeedback();
-    setMatchingTerms(terms);
-    setMatchingDefinitions(definitions);
-    setMatchingSelections({ term: null, definition: null });
-    setMatchingStarted(true);
-  }, [clearMismatchFeedback, validMatchingCards]);
-
-  const resolveMatchAttempt = useCallback(
-    (termItem, definitionItem) => {
-      if (!termItem || !definitionItem) return;
-
-      if (termItem.cardId === definitionItem.cardId) {
-        clearMismatchFeedback();
-        setMatchingTerms((prev) => prev.filter((entry) => entry.cardId !== termItem.cardId));
-        setMatchingDefinitions((prev) => prev.filter((entry) => entry.cardId !== definitionItem.cardId));
-        setMatchingSelections({ term: null, definition: null });
-      } else {
-        if (mismatchTimeoutRef.current) {
-          window.clearTimeout(mismatchTimeoutRef.current);
-          mismatchTimeoutRef.current = null;
-        }
-        const timestamp = Date.now();
-        setMatchingIncorrect({ term: termItem.cardId, definition: definitionItem.cardId, key: timestamp });
-        setMatchingSelections({ term: null, definition: null });
-        mismatchTimeoutRef.current = window.setTimeout(() => {
-          clearMismatchFeedback();
-        }, 450);
-      }
-    },
-    [clearMismatchFeedback],
-  );
-
-  const handleTermSelect = useCallback(
-    (item) => {
-      if (matchingIncorrect) clearMismatchFeedback();
-      const alreadySelected = matchingSelections.term?.cardId === item.cardId;
-
-      if (alreadySelected) {
-        setMatchingSelections((prev) => ({ ...prev, term: null }));
-        return;
-      }
-
-      if (matchingSelections.definition) {
-        resolveMatchAttempt(item, matchingSelections.definition);
-      } else {
-        setMatchingSelections((prev) => ({ ...prev, term: item }));
-      }
-    },
-    [clearMismatchFeedback, matchingIncorrect, matchingSelections, resolveMatchAttempt],
-  );
-
-  const handleDefinitionSelect = useCallback(
-    (item) => {
-      if (matchingIncorrect) clearMismatchFeedback();
-      const alreadySelected = matchingSelections.definition?.cardId === item.cardId;
-
-      if (alreadySelected) {
-        setMatchingSelections((prev) => ({ ...prev, definition: null }));
-        return;
-      }
-
-      if (matchingSelections.term) {
-        resolveMatchAttempt(matchingSelections.term, item);
-      } else {
-        setMatchingSelections((prev) => ({ ...prev, definition: item }));
-      }
-    },
-    [clearMismatchFeedback, matchingIncorrect, matchingSelections, resolveMatchAttempt],
-  );
-
-  const subtitle = useMemo(() => {
-    if (!setData) return '';
-    const count = total;
-    return `${count} card${count === 1 ? '' : 's'}`;
-  }, [setData, total]);
-
   const handleCardKeyDown = useCallback(
     (event) => {
       if (event.key === 'Enter' || event.key === ' ') {
@@ -284,13 +116,18 @@ export default function FlashcardDetailPage() {
     [handleFlipToggle],
   );
 
-  const handleSpeechButtonClick = useCallback(() => {
-    if (isRecording) {
-      stopRecording();
+  const handleMicClick = useCallback(() => {
+    if (voice.status === 'listening') {
+      voice.stop();
       return;
     }
-    startRecording();
-  }, [isRecording, startRecording, stopRecording]);
+    voice.start();
+  }, [voice]);
+
+  const cardCountLabel = useMemo(() => {
+    if (!setData) return '';
+    return `${total} card${total === 1 ? '' : 's'}`;
+  }, [setData, total]);
 
   if (loading) {
     return (
@@ -306,258 +143,167 @@ export default function FlashcardDetailPage() {
     return (
       <Page title="Flashcard set" subtitle="">
         <StatusMessage tone="error">{error}</StatusMessage>
-        <Link to="/flashcards" className="btn-outline mt-4 inline-flex" >Back to sets</Link>
+        <Link to="/flashcards" className="btn-outline mt-4 inline-flex">Back to sets</Link>
       </Page>
     );
   }
 
   return (
-    <Page
-      title={setData?.title || 'Flashcard set'}
-      subtitle={subtitle}
-      actions={
-        <div className="flex gap-2">
-          <Link to={`/flashcards/new?edit=${setData?._id}`} className="btn-outline">Edit</Link>
-          <button type="button" className="btn-ghost" onClick={shuffle} disabled={speechBusy}>Shuffle</button>
-        </div>
-      }
-    >
-      <div className="grid gap-6 lg:grid-cols-[1fr,320px]">
-        <div className="space-y-4">
-          <div
-            className="flashcard-container cursor-pointer select-none text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-500"
-            onClick={handleFlipToggle}
-            onKeyDown={handleCardKeyDown}
-            role="button"
-            tabIndex={0}
-            aria-pressed={flipped}
-          >
-            {current ? (
-              <div className={`flashcard-card${flipped ? ' is-flipped' : ''}`}>
-                <div className="flashcard-face flashcard-face-front">
-                  <div className="flashcard-face-content">
-                    <div className="flashcard-text">
-                      {current.term || <span className="flashcard-text-empty">(no term)</span>}
-                    </div>
-                  </div>
-                  <div className="text-xs uppercase tracking-wide text-neutral-400">
-                    Term | Card {index + 1} of {total}
-                  </div>
-                </div>
-                <div className="flashcard-face flashcard-face-back">
-                  <div className="flashcard-face-content">
-                    <div className="flashcard-text">
-                      {current.definition || <span className="flashcard-text-empty">(no definition)</span>}
-                    </div>
-                  </div>
-                  <div className="text-xs uppercase tracking-wide text-neutral-400">
-                    Definition | Card {index + 1} of {total}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="flashcard-empty">
-                No cards in this set yet.
-              </div>
-            )}
-          </div>
+    <Page title="" subtitle="">
+      <div className="flex items-center gap-2 text-sm text-ds-foreground-muted">
+        <Link to="/flashcards" className="font-medium text-ds-foreground hover:underline">Flashcards</Link>
+        <span>/</span>
+        <span className="text-ds-foreground-muted">{setData?.title || 'Set'}</span>
+      </div>
 
-          <div className="card p-4">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
-                <button type="button" onClick={goPrev} className="btn-outline w-full sm:w-auto" disabled={!total || speechBusy}>
-                  Previous
-                </button>
-                <button type="button" onClick={goNext} className="btn-primary w-full sm:w-auto" disabled={!total || speechBusy}>
-                  Next
-                </button>
-                <button type="button" onClick={shuffle} className="btn-ghost w-full sm:w-auto" disabled={!total || speechBusy}>
-                  Shuffle cards
-                </button>
-              </div>
-              <p className="text-xs text-neutral-500 md:text-right">
-                Use arrow keys to navigate, spacebar to flip.
-              </p>
+      <section className="card mt-4 p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-2">
+            <h1 className="text-2xl font-bold text-ds-foreground">{setData?.title || 'Flashcard set'}</h1>
+            <div className="flex flex-wrap items-center gap-3 text-sm text-ds-foreground-muted">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-100/60 px-2.5 py-0.5 text-xs font-medium text-brand-700">
+                <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
+                Class
+              </span>
+              <span>{cardCountLabel}</span>
+              <span>Last studied 2h ago</span>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Link to={`/flashcards/new?edit=${setData?._id}`} className="inline-flex">
+              <Button variant="outline" iconLeading={<Pencil size={16} />}>Edit</Button>
+            </Link>
+            <Button variant="outline" iconLeading={<Upload size={16} />} disabled title="Coming soon">
+              Export
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <div className="mt-4 grid gap-6 lg:grid-cols-[1fr,320px]">
+        <div className="space-y-4">
+          <div className="relative">
+            <IconButton
+              icon={Star}
+              variant="ghost"
+              size="md"
+              className="absolute top-3 right-3 z-10"
+              onClick={(event) => event.stopPropagation()}
+              aria-label="Favorite card"
+              title="Favorite (coming soon)"
+            />
+            <div
+              className="flashcard-container cursor-pointer select-none text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ds-border-focus"
+              onClick={handleFlipToggle}
+              onKeyDown={handleCardKeyDown}
+              role="button"
+              tabIndex={0}
+              aria-pressed={flipped}
+            >
+              {current ? (
+                <div className={`flashcard-card${flipped ? ' is-flipped' : ''}`}>
+                  <div className="flashcard-face flashcard-face-front">
+                    <div className="flashcard-face-content">
+                      <div className="flashcard-text">
+                        {current.term || <span className="flashcard-text-empty">(no term)</span>}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flashcard-face flashcard-face-back">
+                    <div className="flashcard-face-content">
+                      <div className="flashcard-text">
+                        {current.definition || <span className="flashcard-text-empty">(no definition)</span>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flashcard-empty">No cards in this set yet.</div>
+              )}
             </div>
           </div>
 
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-1 items-center justify-center gap-3">
+              <IconButton
+                icon={ArrowLeft}
+                variant="outline"
+                size="md"
+                onClick={goPrev}
+                disabled={!total || voice.busy}
+                aria-label="Previous card"
+              />
+              <span className="text-sm font-medium text-ds-foreground-muted tabular-nums">
+                {total ? `${index + 1}/${total}` : '0/0'}
+              </span>
+              <IconButton
+                icon={ArrowRight}
+                variant="outline"
+                size="md"
+                onClick={goNext}
+                disabled={!total || voice.busy}
+                aria-label="Next card"
+              />
+            </div>
+            <IconButton
+              icon={voice.status === 'listening' ? MicOff : Mic}
+              variant={voice.status === 'listening' ? 'filled' : 'outline'}
+              size="md"
+              onClick={handleMicClick}
+              disabled={!total || !voice.isSupported || voice.status === 'transcribing' || voice.status === 'grading'}
+              aria-label={voice.status === 'listening' ? 'Stop recording' : 'Start recording'}
+            />
+          </div>
+
+          <hr className="border-ds-border" />
+
+          {!voice.isSupported ? (
+            <StatusMessage tone="warning">
+              This browser does not support microphone recording.
+            </StatusMessage>
+          ) : null}
+
+          <VoicePanel
+            status={voice.status}
+            mediaStream={voice.mediaStream}
+            transcript={voice.transcript}
+            grade={voice.grade}
+            error={voice.error}
+            onDismiss={voice.dismiss}
+          />
+        </div>
+
+        <aside>
           <div className="card p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-base font-semibold text-neutral-900">Speak the definition</p>
-                <p className="text-sm text-neutral-500">
-                  Prompt: <span className="font-medium text-neutral-700">{current?.term || '(no term)'}</span>
-                </p>
-              </div>
+            <p className="px-1 pb-3 text-sm text-ds-foreground-muted">Actions</p>
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="outline"
+                onClick={shuffle}
+                disabled={!total || voice.busy}
+                iconLeading={<Shuffle size={16} />}
+                className="w-full justify-center"
+              >
+                Shuffle set
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/flashcards/${id}/match`)}
+                disabled={!total}
+                iconLeading={<Layers size={16} />}
+                className="w-full justify-center"
+              >
+                Match cards
+              </Button>
               <button
                 type="button"
-                className={`w-full sm:w-auto ${isRecording ? 'btn-primary' : 'btn-outline'}`}
-                onClick={handleSpeechButtonClick}
-                disabled={!total || !speechSupported || isTranscribing || isGradingSpeech}
+                disabled
+                title="Coming soon"
+                className="mt-1 w-full rounded-ds-md py-2 text-sm font-medium text-ds-foreground-muted hover:text-ds-foreground disabled:cursor-not-allowed disabled:text-ds-disabled-fg"
               >
-                {isRecording ? 'Stop and submit' : 'Start mic'}
+                View set
               </button>
             </div>
-
-            {!speechSupported ? (
-              <StatusMessage tone="warning" className="mt-3">
-                This browser does not support microphone recording.
-              </StatusMessage>
-            ) : null}
-
-            {isRecording ? (
-              <p className="mt-3 text-sm text-neutral-600">Recording... tap stop when you finish answering.</p>
-            ) : null}
-            {isTranscribing ? (
-              <p className="mt-3 text-sm text-neutral-600">Transcribing audio...</p>
-            ) : null}
-            {isGradingSpeech ? (
-              <p className="mt-3 text-sm text-neutral-600">Checking answer...</p>
-            ) : null}
-
-            {speechError ? <StatusMessage tone="error" className="mt-3">{speechError}</StatusMessage> : null}
-            {speechGradeError ? <StatusMessage tone="error" className="mt-3">{speechGradeError}</StatusMessage> : null}
-
-            {transcript ? (
-              <div className="mt-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Transcript</p>
-                <p className="mt-1 text-sm text-neutral-700">{transcript}</p>
-              </div>
-            ) : null}
-
-            {speechGrade ? (
-              <StatusMessage tone={speechGrade.correct ? 'success' : 'warning'} className="mt-3">
-                {speechGrade.correct ? 'Correct.' : 'Not quite.'} Score: {Math.round(speechGrade.score * 100)}%
-                {speechGrade.reason ? ` ${speechGrade.reason}` : ''}
-              </StatusMessage>
-            ) : null}
-          </div>
-
-          {setData?.description ? (
-            <div className="card p-4 text-sm text-neutral-600">
-              <p className="font-medium text-neutral-900">Description</p>
-              <p className="mt-1">{setData.description}</p>
-            </div>
-          ) : null}
-
-          <div className="card p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-base font-semibold text-neutral-900">Matching game</p>
-                <p className="text-sm text-neutral-500">Pair each term with its definition to clear the board.</p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="btn-outline"
-                  onClick={startMatchingGame}
-                  disabled={!validMatchingCards.length}
-                >
-                  {matchingStarted ? 'Reset game' : 'Start game'}
-                </button>
-              </div>
-            </div>
-
-            {!validMatchingCards.length ? (
-              <p className="mt-4 text-sm text-neutral-500">
-                Add terms and definitions to this set to unlock the matching game.
-              </p>
-            ) : null}
-
-            {matchingStarted && validMatchingCards.length ? (
-              <div className="mt-4 space-y-4">
-                {matchingTerms.length === 0 && matchingDefinitions.length === 0 ? (
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-                    All matches found! Great job.
-                  </div>
-                ) : (
-                  <>
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <div>
-                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">Terms</p>
-                        <ul className="space-y-2">
-                          {matchingTerms.map((item) => {
-                            const isSelected = matchingSelections.term?.cardId === item.cardId;
-                            const isError = matchingIncorrect?.term === item.cardId;
-                            return (
-                              <li key={`term-${item.cardId}`}>
-                                <button
-                                  type="button"
-                                  onClick={() => handleTermSelect(item)}
-                                  className={`group w-full rounded-xl border bg-white p-4 text-left text-sm transition focus:outline-none ${
-                                    isSelected ? 'border-neutral-900 bg-neutral-900/5 ring-2 ring-neutral-900/60' : 'border-neutral-200 hover:border-neutral-400 hover:bg-neutral-50'
-                                  } ${isError ? 'border-red-400 bg-red-50 match-shake' : ''}`}
-                                  disabled={!!matchingIncorrect && !isError}
-                                >
-                                  <span className="block font-medium text-neutral-900">{item.text}</span>
-                                </button>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </div>
-                      <div>
-                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">Definitions</p>
-                        <ul className="space-y-2">
-                          {matchingDefinitions.map((item) => {
-                            const isSelected = matchingSelections.definition?.cardId === item.cardId;
-                            const isError = matchingIncorrect?.definition === item.cardId;
-                            return (
-                              <li key={`definition-${item.cardId}`}>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDefinitionSelect(item)}
-                                  className={`group w-full rounded-xl border bg-white p-4 text-left text-sm transition focus:outline-none ${
-                                    isSelected ? 'border-neutral-900 bg-neutral-900/5 ring-2 ring-neutral-900/60' : 'border-neutral-200 hover:border-neutral-400 hover:bg-neutral-50'
-                                  } ${isError ? 'border-red-400 bg-red-50 match-shake' : ''}`}
-                                  disabled={!!matchingIncorrect && !isError}
-                                >
-                                  <span className="block text-neutral-700">{item.text}</span>
-                                </button>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </div>
-                    </div>
-                    <p className="text-xs text-neutral-500">Pairs remaining: {matchingTerms.length}</p>
-                  </>
-                )}
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        <aside className="space-y-3">
-          {cards.length ? (
-            <div className="card max-h-[320px] overflow-y-auto p-3 text-sm">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">Quick navigator</p>
-              <ul className="space-y-1">
-                {cards.map((card, i) => (
-                  <li key={card.id}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (speechBusy) return;
-                        setIndex(i);
-                        setFlipped(false);
-                      }}
-                      className={`w-full truncate rounded-lg px-3 py-2 text-left transition ${
-                        i === index ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100'
-                      }`}
-                      disabled={speechBusy}
-                    >
-                      {card.term || '(no term)'}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          <div className="card p-4 text-sm text-neutral-600">
-            <p className="font-medium text-neutral-900">Need to review later?</p>
-            <p className="mt-1">Consider exporting this set or sharing the study link with your group.</p>
           </div>
         </aside>
       </div>
