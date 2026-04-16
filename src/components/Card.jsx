@@ -9,9 +9,6 @@ import GeneratedFromBadges from './GeneratedFromBadges.jsx'
 // menuItems = [menuItem];
 // menuItem = { label: String, onSelect: () => void, danger?: bool } || {type: 'separator'}
 
-// TODO: link flashcard sets to class and/or source material so we can list what class each
-// flashcard & quiz belongs to on the card.
-
 export function Card({ set, menuItems }) {
   const navigate = useNavigate()
 
@@ -36,10 +33,12 @@ export function Card({ set, menuItems }) {
           </h3>
           {set.description ? (
             <p className='text-ds-body-sm text-ds-text-light line-clamp-2'>
-              {set.description}
+              {set.sourceMaterial ? `AI generated from ` : set.description}
+              {/* Make source material clickable. (Need to stop propagation to prevent navigating to clicked Card.) */}
+              <span className='underline'>{set.sourceMaterialName}</span>
             </p>
           ) : null}
-          <GeneratedFromBadges item={set} className='pt-1' />
+          {/* <GeneratedFromBadges item={set} className='pt-1' /> */}
         </div>
         <div className='flex'>
           {menuItems && (
@@ -62,12 +61,30 @@ export function Card({ set, menuItems }) {
         </div>
       </div>
 
-      <div className='flex gap-2 items-center text-xs text-neutral-500'>
-        {/* Need to make class tag dynamic (DB relationship between class and flashcards) */}
-        <span className='inline-flex items-center gap-1 bg-ds-neutral text-ds-text-dark rounded-xl px-2 py-ds-0.5 border border-ds-border'>
-          Class
-        </span>
-        {'·'}
+      <div className='flex gap-2 items-center text-xs text-neutral-500 h-[22px]'>
+        {set.sourceClassName && (
+          <>
+            {/* Inline styles for class color (with 15% opacity) to be applied to the background */}
+            <span
+              style={
+                {
+                  // backgroundColor: `${set.sourceClassColor}15`,
+                  // borderColor: set.sourceClassColor
+                }
+              }
+              className='inline-flex items-center gap-1.5 bg-ds-neutral text-ds-text-dark rounded-xl px-2 py-ds-0.5 border border-ds-border'
+            >
+              <span
+                className='h-2 w-2 rounded-full'
+                style={{ backgroundColor: set.sourceClassColor }}
+                aria-hidden='true'
+              />
+              {set.sourceClassName}
+            </span>
+            {'·'}
+          </>
+        )}
+
         <span className=''>
           {set.cardsCount ?? set.cards?.length ?? set.questions?.length ?? 0}{' '}
           {set.questions ? 'questions' : 'cards'}
